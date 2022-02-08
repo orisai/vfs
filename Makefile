@@ -1,67 +1,71 @@
-.PHONY: cs md cov pear docs check
+_: list
 
-PHP_VFS_BUILD_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
-PHP_VFS_BUILD_REV=$(shell git rev-parse HEAD)
+# Config
 
-cs:
-	phpcs --standard=PSR2 --ignore=Wrapper.php src/
+PHPCS_CONFIG=tools/phpcs.xml
+PHPSTAN_SRC_CONFIG=tools/phpstan.src.neon
+PHPSTAN_TESTS_CONFIG=tools/phpstan.tests.neon
+PHPUNIT_CONFIG=tools/phpunit.xml
+INFECTION_CONFIG=tools/infection.json
 
-md:
-	phpmd src/
+# QA
 
-test:
-	vendor/bin/phpunit
+qa: ## Check code quality - coding style and static analysis
+	make cs & make phpstan
 
-cov:
-	vendor/bin/phpunit --coverage-html=build/log/coverage
-	open build/log/coverage/index.html
+cs: ## Check PHP files coding style
+	mkdir -p var/tools/PHP_CodeSniffer
+	$(PRE_PHP) "vendor/bin/phpcs" src tests --standard=$(PHPCS_CONFIG) --parallel=$(LOGICAL_CORES) $(ARGS)
 
-scru:
-	scrutinizer run -f json --output-file=build/log/scrutinizer.json ./
+csf: ## Fix PHP files coding style
+	mkdir -p var/tools/PHP_CodeSniffer
+	$(PRE_PHP) "vendor/bin/phpcbf" src tests --standard=$(PHPCS_CONFIG) --parallel=$(LOGICAL_CORES) $(ARGS)
 
-ifndef version
-check:
-	$(error Usage: make tag version=...)
-else
-check:
-	@git diff --quiet HEAD || (echo WORKING DIRECTORY DIRTY && false)
-endif
+phpstan: ## Analyse code with PHPStan
+	mkdir -p var/tools
+	$(PRE_PHP) "vendor/bin/phpstan" analyse src -c $(PHPSTAN_SRC_CONFIG) $(ARGS)
+	$(PRE_PHP) "vendor/bin/phpstan" analyse tests -c $(PHPSTAN_TESTS_CONFIG) $(ARGS)
 
-setup-pear:
-	git remote add pear git@github.com:michael-donat/pear.git || true
-	git fetch pear
-	git checkout pear || git checkout -b pear pear/gh-pages
-	git checkout -
-	sudo pear channel-discover pear.michaeldonat.net || true
-	mkdir -p build/dist
+# Tests
 
-pear: check setup-pear
-	./build/pear/package.php --source=src/ --version=$(version) > package.xml
-	pear package
-	mv VirtualFileSystem-$(version).tgz build/dist/
-	git checkout pear
-	pirum add . build/dist/VirtualFileSystem-$(version).tgz
-	git add . && git commit -a -m'adding VirtualFileSystem-$(version).tgz' && git push pear pear:gh-pages
-	git checkout -f -
+.PHONY: tests
+tests: ## Run all tests
+	$(PRE_PHP) $(PHPUNIT_COMMAND) $(ARGS)
 
-docs:
-	@git diff --quiet HEAD || (echo WORKING DIRECTORY DIRTY && false)
-	./vendor/bin/sami.php update .sami.php
-	vendor/bin/phpunit --coverage-html=build/log/coverage
-	git checkout gh-pages
-	git pull
-	mkdir -p api
-	cp -rf build/docs/api/* api/
-	git add api
-	mkdir -p coverage
-	cp -rf build/log/coverage/* coverage/
-	git add coverage
-	git commit -m"auto-generated coverage & API docs for $(PHP_VFS_BUILD_BRANCH):$(PHP_VFS_BUILD_REV)" || true
-	git push
-	git checkout $(PHP_VFS_BUILD_BRANCH)
+coverage-clover: ## Generate code coverage in XML format
+	$(PRE_PHP) $(PHPUNIT_COVERAGE) --coverage-clover=var/coverage/clover.xml $(ARGS)
 
-tag: check
-	git tag v$(version)
-	git push --tags
+coverage-html: ## Generate code coverage in HTML format
+	$(PRE_PHP) $(PHPUNIT_COVERAGE) --coverage-html=var/coverage/html $(ARGS)
 
-deploy: tag pear docs
+mutations: ## Check code for mutants
+	make mutations-tests
+	make mutations-infection
+
+mutations-tests:
+	mkdir -p var/coverage
+	$(PRE_PHP) $(PHPUNIT_COVERAGE) --coverage-xml=var/coverage/xml --log-junit=var/coverage/junit.xml
+
+mutations-infection:
+	$(PRE_PHP) vendor/bin/infection \
+		--configuration=$(INFECTION_CONFIG) \
+		--threads=$(LOGICAL_CORES) \
+		--coverage=../var/coverage \
+		--skip-initial-tests \
+		$(ARGS)
+
+# Utilities
+
+.SILENT: $(shell grep -h -E '^[a-zA-Z_-]+:.*?$$' $(MAKEFILE_LIST) | sort -u | awk 'BEGIN {FS = ":.*?"}; {printf "%s ", $$1}')
+
+LIST_PAD=20
+list:
+	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"}'
+	grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort -u | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-$(LIST_PAD)s\033[0m %s\n", $$1, $$2}'
+
+PRE_PHP=XDEBUG_MODE=off
+
+PHPUNIT_COMMAND="vendor/bin/paratest" -c $(PHPUNIT_CONFIG) --runner=WrapperRunner -p$(LOGICAL_CORES)
+PHPUNIT_COVERAGE=php -d pcov.enabled=1 -d pcov.directory=./src $(PHPUNIT_COMMAND)
+
+LOGICAL_CORES=$(shell nproc || sysctl -n hw.logicalcpu || echo 4)

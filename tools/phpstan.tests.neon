@@ -1,0 +1,11 @@
+includes:
+	- phpstan.base.neon
+
+parameters:
+	level: 3
+	resultCachePath: %currentWorkingDirectory%/var/tools/PHPStan/resultCache.tests.php
+
+	ignoreErrors:
+		# Error control trick
+		- message: "#^Offset 'n\\/a' does not exist on array\\{\\}\\.$#"
+		  path: ../tests/Unit/WrapperTest.php
