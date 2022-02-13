@@ -4,7 +4,6 @@ namespace Orisai\VFS\Structure;
 
 use LogicException;
 use Orisai\VFS\Wrapper\PermissionHelper;
-use function time;
 
 /**
  * @internal
@@ -22,18 +21,19 @@ abstract class Node
 
 	private int $gid;
 
-	private ?int $atime = null;
+	private int $atime;
 
-	private ?int $mtime = null;
+	private int $mtime;
 
-	private ?int $ctime = null;
+	private int $ctime;
 
 	private int $mode;
 
-	public function __construct(string $basename)
+	public function __construct(string $basename, int $currentTime)
 	{
-		$this->basename = $basename;
 		$this->setMode(self::DEFAULT_MODE);
+		$this->basename = $basename;
+		$this->atime = $this->mtime = $this->ctime = $currentTime;
 	}
 
 	abstract public static function getStatType(): int;
@@ -138,7 +138,7 @@ abstract class Node
 
 	public function getAccessTime(): int
 	{
-		return $this->atime ?? time();
+		return $this->atime;
 	}
 
 	public function setModificationTime(int $time): void
@@ -148,7 +148,7 @@ abstract class Node
 
 	public function getModificationTime(): int
 	{
-		return $this->mtime ?? time();
+		return $this->mtime;
 	}
 
 	public function setChangeTime(int $time): void
@@ -161,7 +161,7 @@ abstract class Node
 	 */
 	public function getChangeTime(): int
 	{
-		return $this->ctime ?? time();
+		return $this->ctime;
 	}
 
 	public function __toString(): string

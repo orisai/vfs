@@ -7,13 +7,14 @@ use Orisai\VFS\Structure\File;
 use Orisai\VFS\Structure\Node;
 use Orisai\VFS\Structure\RootDirectory;
 use PHPUnit\Framework\TestCase;
+use function time;
 
 final class NodeTest extends TestCase
 {
 
 	public function testChmod(): void
 	{
-		$file = new File('file');
+		$file = new File('file', time());
 
 		self::assertEquals(Node::DEFAULT_MODE | File::getStatType(), $file->getMode());
 
@@ -27,8 +28,8 @@ final class NodeTest extends TestCase
 
 	public function testToStringReturnsPath(): void
 	{
-		$dir = new Directory('dir');
-		$dir->addFile($file = new File('file'));
+		$dir = new Directory('dir', time());
+		$dir->addFile($file = new File('file', time()));
 
 		self::assertEquals($file->getPath(), $file, '__toString() invoked and returned path');
 
@@ -36,7 +37,7 @@ final class NodeTest extends TestCase
 
 	public function testSizeIsReturned(): void
 	{
-		$file = new File('file');
+		$file = new File('file', time());
 		$file->setData('1234567890');
 
 		self::assertEquals(10, $file->getSize());
@@ -44,12 +45,12 @@ final class NodeTest extends TestCase
 
 	public function testURLConstruction(): void
 	{
-		$root = new RootDirectory();
+		$root = new RootDirectory(time());
 		$root->setScheme('s://');
 
-		$root->addDirectory($dir = new Directory('dir'));
-		$dir->addDirectory($dir = new Directory('dir'));
-		$dir->addFile($file = new File('file'));
+		$root->addDirectory($dir = new Directory('dir', time()));
+		$dir->addDirectory($dir = new Directory('dir', time()));
+		$dir->addFile($file = new File('file', time()));
 
 		self::assertEquals('s://dir/dir/file', $file->getUrl());
 	}

@@ -34,17 +34,17 @@ final class Factory
 
 	public function createRoot(): RootDirectory
 	{
-		return $this->updateMetadata(new RootDirectory());
+		return $this->setOwnership(new RootDirectory(time()));
 	}
 
 	public function createDir(string $basename): Directory
 	{
-		return $this->updateMetadata(new Directory($basename));
+		return $this->setOwnership(new Directory($basename, time()));
 	}
 
 	public function createFile(string $basename): File
 	{
-		return $this->updateMetadata(new File($basename));
+		return $this->setOwnership(new File($basename, time()));
 	}
 
 	/**
@@ -52,36 +52,22 @@ final class Factory
 	 */
 	public function createLink(string $basename, Node $destination): Link
 	{
-		return $this->updateMetadata(new Link($basename, $destination));
+		return $this->setOwnership(new Link($destination, $basename, time()));
 	}
 
 	/**
-	 * Updates time and ownership of a node
+	 * Set ownership of a node
 	 *
 	 * @template T of Node
 	 * @param T $node
 	 * @return T
 	 */
-	private function updateMetadata(Node $node): Node
-	{
-		$this->updateFileTimes($node);
-		$this->updateOwnership($node);
-
-		return $node;
-	}
-
-	private function updateFileTimes(Node $node): void
-	{
-		$time = time();
-		$node->setAccessTime($time);
-		$node->setModificationTime($time);
-		$node->setChangeTime($time);
-	}
-
-	private function updateOwnership(Node $node): void
+	private function setOwnership(Node $node): Node
 	{
 		$node->setUser($this->uid);
 		$node->setGroup($this->gid);
+
+		return $node;
 	}
 
 }

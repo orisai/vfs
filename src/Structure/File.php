@@ -26,9 +26,9 @@ final class File extends Node
 	/**
 	 * @inherit
 	 */
-	public function __construct(string $basename)
+	public function __construct(string $basename, int $currentTime)
 	{
-		parent::__construct($basename);
+		parent::__construct($basename, $currentTime);
 		$this->sharedLock = new SplObjectStorage();
 	}
 

@@ -5,13 +5,14 @@ namespace Tests\Orisai\VFS\Unit\Wrapper;
 use Orisai\VFS\Structure\File;
 use Orisai\VFS\Wrapper\PermissionHelper;
 use PHPUnit\Framework\TestCase;
+use function time;
 
 final class PermissionHelperTest extends TestCase
 {
 
 	public function testUserPermissionsAreCalculatedCorrectly(): void
 	{
-		$file = new File('file');
+		$file = new File('file', time());
 		$file->setUser(1);
 
 		$ph = new PermissionHelper(1, 1);
@@ -49,7 +50,7 @@ final class PermissionHelperTest extends TestCase
 
 	public function testGroupPermissionsAreCalculatedCorrectly(): void
 	{
-		$file = new File('file');
+		$file = new File('file', time());
 		$file->setGroup(1);
 
 		$ph = new PermissionHelper(1, 1);
@@ -87,7 +88,7 @@ final class PermissionHelperTest extends TestCase
 
 	public function testWorldPermissionsAreCalculatedCorrectly(): void
 	{
-		$file = new File('file');
+		$file = new File('file', time());
 
 		$ph = new PermissionHelper(1, 1);
 
@@ -119,7 +120,7 @@ final class PermissionHelperTest extends TestCase
 
 	public function testIsReadable(): void
 	{
-		$file = new File('file');
+		$file = new File('file', time());
 
 		$ph = new PermissionHelper(1, 1);
 

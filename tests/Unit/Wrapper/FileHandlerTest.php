@@ -5,13 +5,14 @@ namespace Tests\Orisai\VFS\Unit\Wrapper;
 use Orisai\VFS\Structure\File;
 use Orisai\VFS\Wrapper\FileHandler;
 use PHPUnit\Framework\TestCase;
+use function time;
 
 final class FileHandlerTest extends TestCase
 {
 
 	public function testPointerPositionInitializedToZero(): void
 	{
-		$file = new File('/file');
+		$file = new File('/file', time());
 		$pointer = new FileHandler($file);
 
 		self::assertEquals(0, $pointer->position());
@@ -19,7 +20,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testPointerPositionSetterGetter(): void
 	{
-		$file = new File('/file');
+		$file = new File('/file', time());
 		$pointer = new FileHandler($file);
 
 		$pointer->position(15);
@@ -28,7 +29,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testPointerFindsEndOfFile(): void
 	{
-		$file = new File('/file');
+		$file = new File('/file', time());
 		$file->setData('1234567');
 
 		$pointer = new FileHandler($file);
@@ -40,7 +41,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testDataIsReadInChunks(): void
 	{
-		$file = new File('/file');
+		$file = new File('/file', time());
 		$file->setData('1234567');
 
 		$pointer = new FileHandler($file);
@@ -55,7 +56,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testCheckingEOF(): void
 	{
-		$file = new File('/file');
+		$file = new File('/file', time());
 
 		$handler = new FileHandler($file);
 
@@ -75,7 +76,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testTruncateRemovesDataAndResetsPointer(): void
 	{
-		$file = new File('/file');
+		$file = new File('/file', time());
 		$file->setData('data');
 
 		$handler = new FileHandler($file);
@@ -96,7 +97,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testOffsetPositionMovesPointerCorrectly(): void
 	{
-		$file = new File('/file');
+		$file = new File('/file', time());
 		$file->setData('data');
 
 		$handler = new FileHandler($file);

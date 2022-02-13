@@ -9,8 +9,6 @@ use Orisai\VFS\Factory;
 use Orisai\VFS\FileSystem;
 use Orisai\VFS\StreamWrapper;
 use Orisai\VFS\Structure\Directory;
-use Orisai\VFS\Structure\File;
-use Orisai\VFS\Structure\Link;
 use Orisai\VFS\Wrapper\PermissionHelper;
 use PHPUnit\Framework\TestCase;
 use function base64_decode;
@@ -120,9 +118,10 @@ final class WrapperTest extends TestCase
 	public function testFileExists(): void
 	{
 		$fs = new FileSystem();
-		$fs->getRoot()->addDirectory($d = new Directory('dir'));
-		$d->addFile(new File('file'));
-		$d->addDirectory(new Directory('dir'));
+		$factory = $fs->getContainer()->getFactory();
+		$fs->getRoot()->addDirectory($d = $factory->createDir('dir'));
+		$d->addFile($factory->createFile('file'));
+		$d->addDirectory($factory->createDir('dir'));
 
 		self::assertFileExists($fs->getPathWithScheme('/dir/file'));
 		self::assertFileExists($fs->getPathWithScheme('/dir'));
@@ -133,9 +132,10 @@ final class WrapperTest extends TestCase
 	public function testIsDir(): void
 	{
 		$fs = new FileSystem();
-		$fs->getRoot()->addDirectory($d = new Directory('dir'));
-		$d->addFile(new File('file'));
-		$d->addDirectory(new Directory('dir'));
+		$factory = $fs->getContainer()->getFactory();
+		$fs->getRoot()->addDirectory($d = $factory->createDir('dir'));
+		$d->addFile($factory->createFile('file'));
+		$d->addDirectory($factory->createDir('dir'));
 
 		self::assertDirectoryDoesNotExist($fs->getPathWithScheme('/dir/file'));
 		self::assertDirectoryExists($fs->getPathWithScheme('/dir'));
@@ -147,8 +147,9 @@ final class WrapperTest extends TestCase
 	public function testIsLink(): void
 	{
 		$fs = new FileSystem();
-		$fs->getRoot()->addDirectory($d = new Directory('dir'));
-		$d->addLink(new Link('link', $d));
+		$factory = $fs->getContainer()->getFactory();
+		$fs->getRoot()->addDirectory($d = $factory->createDir('dir'));
+		$d->addLink($factory->createLink('link', $d));
 
 		self::assertTrue(is_link($fs->getPathWithScheme('/dir/link')));
 	}
@@ -156,10 +157,11 @@ final class WrapperTest extends TestCase
 	public function testIsFile(): void
 	{
 		$fs = new FileSystem();
-		$fs->getRoot()->addDirectory($d = new Directory('dir'));
-		$d->addFile(new File('file'));
-		$fs->getRoot()->addFile(new File('file2'));
-		$d->addDirectory(new Directory('dir'));
+		$factory = $fs->getContainer()->getFactory();
+		$fs->getRoot()->addDirectory($d = $factory->createDir('dir'));
+		$d->addFile($factory->createFile('file'));
+		$fs->getRoot()->addFile($factory->createFile('file2'));
+		$d->addDirectory($factory->createDir('dir'));
 
 		self::assertTrue(is_file($fs->getPathWithScheme('/dir/file')));
 		self::assertFalse(is_file($fs->getPathWithScheme('/dir')));
@@ -1426,8 +1428,9 @@ final class WrapperTest extends TestCase
 		}
 
 		$fs = new FileSystem();
+		$factory = $fs->getContainer()->getFactory();
 		$directory = $fs->createDirectory('/dir');
-		$link = new Link('link', $directory);
+		$link = $factory->createLink('link', $directory);
 		$directory->addLink($link);
 
 		$fs->getContainer()->setPermissionHelper(
@@ -1449,8 +1452,9 @@ final class WrapperTest extends TestCase
 		}
 
 		$fs = new FileSystem();
+		$factory = $fs->getContainer()->getFactory();
 		$directory = $fs->createDirectory('/dir');
-		$link = new Link('link', $directory);
+		$link = $factory->createLink('link', $directory);
 		$directory->addLink($link);
 
 		$fs->getContainer()->setPermissionHelper(

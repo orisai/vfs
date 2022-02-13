@@ -18,7 +18,8 @@ final class ContainerTest extends TestCase
 
 	public function testRootCreatedAfterRegistration(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 
 		self::assertEquals('/', $container->getRootDirectory()->getBasename());
 		self::assertEquals('/', $container->getRootDirectory()->getPath());
@@ -27,13 +28,14 @@ final class ContainerTest extends TestCase
 
 	public function testNodeAtAddressReturned(): void
 	{
-		$container = new Container(new Factory());
-		$container->getRootDirectory()->addDirectory(new Directory('dir1.1'));
-		$container->getRootDirectory()->addDirectory($d12 = new Directory('dir1.2'));
+		$factory = new Factory();
+		$container = new Container($factory);
+		$container->getRootDirectory()->addDirectory($factory->createDir('dir1.1'));
+		$container->getRootDirectory()->addDirectory($d12 = $factory->createDir('dir1.2'));
 
-		$d12->addDirectory($d21 = new Directory('dir2.1'));
-		$d21->addDirectory($d221 = new Directory('dir2.2.1'));
-		$d221->addFile($file = new File('testFile'));
+		$d12->addDirectory($d21 = $factory->createDir('dir2.1'));
+		$d21->addDirectory($d221 = $factory->createDir('dir2.2.1'));
+		$d221->addFile($file = $factory->createFile('testFile'));
 
 		self::assertEquals($d221, $container->getNodeAt('/dir1.2/dir2.1/dir2.2.1'));
 
@@ -41,8 +43,9 @@ final class ContainerTest extends TestCase
 
 	public function testHasNodeAtReturnsCorrectly(): void
 	{
-		$container = new Container(new Factory());
-		$container->getRootDirectory()->addDirectory(new Directory('dir1.1'));
+		$factory = new Factory();
+		$container = new Container($factory);
+		$container->getRootDirectory()->addDirectory($factory->createDir('dir1.1'));
 
 		self::assertTrue($container->hasNodeAt('/dir1.1'));
 		self::assertFalse($container->hasNodeAt('/dir'));
@@ -51,19 +54,20 @@ final class ContainerTest extends TestCase
 
 	public function testDirectoryCreation(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createDir('/dir1');
 
 		self::assertInstanceOf(Directory::class, $container->getNodeAt('/dir1'));
 
 		//now recursive
-		$container = new Container(new Factory());
+		$container = new Container($factory);
 		$container->createDir('/dir1/dir2', true);
 
 		self::assertInstanceOf(Directory::class, $container->getNodeAt('/dir1/dir2'));
 
 		//and mode
-		$container = new Container(new Factory());
+		$container = new Container($factory);
 		$dir = $container->createDir('/dir1/dir2/dir3', true, 0_000);
 
 		self::assertEquals(0_000 | Directory::getStatType(), $dir->getMode());
@@ -74,14 +78,16 @@ final class ContainerTest extends TestCase
 	{
 		$this->expectException(PathNotFound::class);
 
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createDir('/dir1/dir2');
 
 	}
 
 	public function testFileCreation(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 
 		$container->createFile('/file');
 
@@ -99,7 +105,8 @@ final class ContainerTest extends TestCase
 	{
 		$this->expectException(PathNotFound::class);
 
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 
 		$container->createFile('/dir/file');
 
@@ -107,7 +114,8 @@ final class ContainerTest extends TestCase
 
 	public function testFileCreationThrowsWhenTryingToOverride(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 
 		$container->createFile('/file');
 
@@ -119,7 +127,8 @@ final class ContainerTest extends TestCase
 
 	public function testMovingFilesWithinParent(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createFile('/file');
 
 		$container->move('/file', '/file2');
@@ -130,12 +139,13 @@ final class ContainerTest extends TestCase
 
 	public function testMovingDirectoriesWithinParent(): void
 	{
-		$container = new Container(new Factory());
-		$container->getRootDirectory()->addDirectory($dir = new Directory('dir1'));
-		$container->getRootDirectory()->addDirectory(new Directory('dir2'));
-		$dir->addDirectory(new Directory('dir11'));
-		$dir->addDirectory(new Directory('dir12'));
-		$dir->addFile(new File('file'));
+		$factory = new Factory();
+		$container = new Container($factory);
+		$container->getRootDirectory()->addDirectory($dir = $factory->createDir('dir1'));
+		$container->getRootDirectory()->addDirectory($factory->createDir('dir2'));
+		$dir->addDirectory($factory->createDir('dir11'));
+		$dir->addDirectory($factory->createDir('dir12'));
+		$dir->addFile($factory->createFile('file'));
 
 		$container->move('/dir1', '/dirMoved');
 
@@ -149,12 +159,13 @@ final class ContainerTest extends TestCase
 
 	public function testMovingToDifferentParent(): void
 	{
-		$container = new Container(new Factory());
-		$container->getRootDirectory()->addDirectory($dir = new Directory('dir1'));
-		$container->getRootDirectory()->addDirectory(new Directory('dir2'));
-		$dir->addDirectory(new Directory('dir11'));
-		$dir->addDirectory(new Directory('dir12'));
-		$dir->addFile(new File('file'));
+		$factory = new Factory();
+		$container = new Container($factory);
+		$container->getRootDirectory()->addDirectory($dir = $factory->createDir('dir1'));
+		$container->getRootDirectory()->addDirectory($factory->createDir('dir2'));
+		$dir->addDirectory($factory->createDir('dir11'));
+		$dir->addDirectory($factory->createDir('dir12'));
+		$dir->addFile($factory->createFile('file'));
 
 		$container->move('/dir1', '/dir2/dirMoved');
 
@@ -167,7 +178,8 @@ final class ContainerTest extends TestCase
 
 	public function testMovingFileOntoExistingFileOverridesTarget(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createFile('/file1', 'file1');
 		$container->createFile('/file2', 'file2');
 
@@ -180,7 +192,8 @@ final class ContainerTest extends TestCase
 
 	public function testMovingDirectoryOntoExistingDirectoryOverridesTarget(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createDir('/dir1');
 		$container->createDir('/dir2');
 
@@ -192,7 +205,8 @@ final class ContainerTest extends TestCase
 
 	public function testMovingNonEmptyDirectoryOntoExistingDirectoryFails(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createDir('/dir1');
 		$container->createDir('/dir2');
 		$container->createFile('/dir2/file1', 'file');
@@ -206,7 +220,8 @@ final class ContainerTest extends TestCase
 
 	public function testMovingDirectoryOntoExistingFileThrows(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createDir('/dir1');
 		$container->createFile('/file2', 'file2');
 
@@ -219,7 +234,8 @@ final class ContainerTest extends TestCase
 
 	public function testMovingFileOntoExistingDirectoryThrows(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createDir('/dir1');
 		$container->createFile('/file2', 'file2');
 
@@ -232,7 +248,8 @@ final class ContainerTest extends TestCase
 
 	public function testMovingFileOntoInvalidPathWithFileParentThrows(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createFile('/file1');
 		$container->createFile('/file2', 'file2');
 
@@ -244,7 +261,8 @@ final class ContainerTest extends TestCase
 
 	public function testRemoveDeletesNodeFromParent(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createFile('/file');
 
 		$container->remove('/file');
@@ -260,7 +278,8 @@ final class ContainerTest extends TestCase
 
 	public function testRemoveThrowsWhenDeletingDirectoriesWithRecursiveFlag(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createDir('/dir');
 
 		$this->expectException(RuntimeException::class);
@@ -271,7 +290,8 @@ final class ContainerTest extends TestCase
 
 	public function testLinkCreation(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createFile('/file');
 		$container->createLink('/link', '/file');
 
@@ -281,7 +301,8 @@ final class ContainerTest extends TestCase
 
 	public function testLinkCreationThrowsWhenTryingToOverride(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 
 		$container->createFile('/file');
 		$container->createLink('/link', '/file');
@@ -294,7 +315,8 @@ final class ContainerTest extends TestCase
 
 	public function testCreatingDirectoryOnPathThrowsWhenParentIsAFile(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createFile('/file');
 
 		$this->expectException(PathIsNotADirectory::class);
@@ -304,7 +326,8 @@ final class ContainerTest extends TestCase
 
 	public function testFileAtThrowsWhenFileOnParentPath(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createFile('/file');
 
 		$this->expectException(PathNotFound::class);
@@ -314,7 +337,8 @@ final class ContainerTest extends TestCase
 
 	public function testCreateFileThrowsNonDirWhenParentNotDirectory(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createFile('/file');
 
 		$this->expectException(PathIsNotADirectory::class);
@@ -324,7 +348,8 @@ final class ContainerTest extends TestCase
 
 	public function testDirectoryAtThrowsNonDirIfReturnedNotDir(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createFile('/file');
 
 		$this->expectException(PathIsNotADirectory::class);
@@ -334,7 +359,8 @@ final class ContainerTest extends TestCase
 
 	public function testDirectoryAtBubblesNotFoundOnBadPath(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 
 		$this->expectException(PathNotFound::class);
 
@@ -343,7 +369,8 @@ final class ContainerTest extends TestCase
 
 	public function testDirectoryAtReturnsDirectory(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createDir('/dir');
 
 		self::assertInstanceOf(Directory::class, $container->getDirectoryAt('/dir'));
@@ -351,7 +378,8 @@ final class ContainerTest extends TestCase
 
 	public function testFileAtThrowsNonFileIfReturnedNotFile(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createDir('/dir');
 
 		$this->expectException(PathIsNotAFile::class);
@@ -361,7 +389,8 @@ final class ContainerTest extends TestCase
 
 	public function testFileAtBubblesNotFoundOnBadPath(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 
 		$this->expectException(PathNotFound::class);
 
@@ -370,7 +399,8 @@ final class ContainerTest extends TestCase
 
 	public function testFileAtReturnsFile(): void
 	{
-		$container = new Container(new Factory());
+		$factory = new Factory();
+		$container = new Container($factory);
 		$container->createFile('/file');
 
 		self::assertInstanceOf(File::class, $container->getFileAt('/file'));
