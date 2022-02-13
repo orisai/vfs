@@ -8,5 +8,5 @@ parameters:
 	ignoreErrors:
 		# It has, we are testing access time
 		- message: '#^Call to function file_get_contents\(\) on a separate line has no effect\.$#'
-		  path: ../tests/Unit/WrapperTest.php
+		  path: ../tests/Unit/StreamWrapperTest.php
 		  count: 1

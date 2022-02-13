@@ -71,7 +71,7 @@ use const STREAM_META_OWNER_NAME;
 use const STREAM_META_TOUCH;
 use const STREAM_REPORT_ERRORS;
 
-final class WrapperTest extends TestCase
+final class StreamWrapperTest extends TestCase
 {
 
 	private int $uid;
