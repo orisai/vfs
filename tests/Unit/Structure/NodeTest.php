@@ -5,7 +5,6 @@ namespace Tests\Orisai\VFS\Unit\Structure;
 use Orisai\VFS\Structure\Directory;
 use Orisai\VFS\Structure\File;
 use Orisai\VFS\Structure\Node;
-use Orisai\VFS\Structure\RootDirectory;
 use PHPUnit\Framework\TestCase;
 use function time;
 
@@ -41,18 +40,6 @@ final class NodeTest extends TestCase
 		$file->setData('1234567890');
 
 		self::assertEquals(10, $file->getSize());
-	}
-
-	public function testURLConstruction(): void
-	{
-		$root = new RootDirectory(time(), 0, 0);
-		$root->setScheme('s://');
-
-		$root->addDirectory($dir = new Directory('dir', time(), 0, 0));
-		$dir->addDirectory($dir = new Directory('dir', time(), 0, 0));
-		$dir->addFile($file = new File('file', time(), 0, 0));
-
-		self::assertEquals('s://dir/dir/file', $file->getUrl());
 	}
 
 }

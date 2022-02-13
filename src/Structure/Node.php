@@ -2,8 +2,6 @@
 
 namespace Orisai\VFS\Structure;
 
-use LogicException;
-
 /**
  * @internal
  */
@@ -107,20 +105,6 @@ abstract class Node
 		return $this->parent instanceof RootDirectory
 			? "$dirname$basename"
 			: "$dirname/$basename";
-	}
-
-	public function getUrl(): string
-	{
-		if ($this->parent === null) {
-			throw new LogicException('Node has no parent');
-		}
-
-		$url = $this->parent->getUrl();
-		$basename = $this->getBasename();
-
-		return $this->parent instanceof RootDirectory
-			? "$url$basename"
-			: "$url/$basename";
 	}
 
 	public function getDirname(): ?string

@@ -4,11 +4,9 @@ namespace Tests\Orisai\VFS\Unit;
 
 use DirectoryIterator;
 use finfo;
-use Orisai\VFS\Container;
-use Orisai\VFS\Factory;
-use Orisai\VFS\FileSystem;
 use Orisai\VFS\StreamWrapper;
 use Orisai\VFS\Structure\Directory;
+use Orisai\VFS\VFS;
 use Orisai\VFS\Wrapper\PermissionHelper;
 use PHPUnit\Framework\TestCase;
 use function base64_decode;
@@ -52,7 +50,6 @@ use function rename;
 use function rmdir;
 use function stat;
 use function str_repeat;
-use function stream_context_set_default;
 use function touch;
 use function uniqid;
 use function unlink;
@@ -102,86 +99,91 @@ final class WrapperTest extends TestCase
 
 	public function testContainerIsReturnedFromContext(): void
 	{
-		$container = new Container(new Factory());
-		stream_context_set_default(['contextContainerTest' => ['Container' => $container]]);
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
 
-		$c = new StreamWrapper();
-
-		self::assertEquals($container, $c->getContainerFromContext('contextContainerTest://file'));
-		self::assertEquals($container, $c->getContainerFromContext('contextContainerTest://'));
-		self::assertEquals($container, $c->getContainerFromContext('contextContainerTest:///file'));
+		self::assertSame($container, StreamWrapper::getContainer("$scheme://file"));
+		self::assertSame($container, StreamWrapper::getContainer("$scheme://"));
+		self::assertSame($container, StreamWrapper::getContainer("$scheme:///file"));
 
 	}
 
 	public function testFileExists(): void
 	{
-		$fs = new FileSystem();
-		$factory = $fs->getContainer()->getFactory();
-		$fs->getRoot()->addDirectory($d = $factory->createDir('dir'));
-		$d->addFile($factory->createFile('file'));
-		$d->addDirectory($factory->createDir('dir'));
+		$scheme = VFS::register();
 
-		self::assertFileExists($fs->getPathWithScheme('/dir/file'));
-		self::assertFileExists($fs->getPathWithScheme('/dir'));
-		self::assertFileDoesNotExist($fs->getPathWithScheme('/dir/fileNotExist'));
+		mkdir($dir = "$scheme://dir");
+
+		touch("$dir/file");
+		mkdir("$dir/dir");
+
+		self::assertFileExists("$dir/file");
+		self::assertFileExists($dir);
+		self::assertFileDoesNotExist("$dir/fileNotExist");
 
 	}
 
 	public function testIsDir(): void
 	{
-		$fs = new FileSystem();
-		$factory = $fs->getContainer()->getFactory();
-		$fs->getRoot()->addDirectory($d = $factory->createDir('dir'));
-		$d->addFile($factory->createFile('file'));
-		$d->addDirectory($factory->createDir('dir'));
+		$scheme = VFS::register();
 
-		self::assertDirectoryDoesNotExist($fs->getPathWithScheme('/dir/file'));
-		self::assertDirectoryExists($fs->getPathWithScheme('/dir'));
-		self::assertDirectoryExists($fs->getPathWithScheme('/dir/dir'));
-		self::assertDirectoryExists($fs->getPathWithScheme('/'));
+		mkdir($dir = "$scheme://dir");
+
+		touch("$dir/file");
+		mkdir("$dir/dir");
+
+		self::assertDirectoryDoesNotExist("$dir/file");
+		self::assertDirectoryExists($dir);
+		self::assertDirectoryExists("$dir/dir");
+		self::assertDirectoryExists("$scheme://");
 
 	}
 
 	public function testIsLink(): void
 	{
-		$fs = new FileSystem();
-		$factory = $fs->getContainer()->getFactory();
-		$fs->getRoot()->addDirectory($d = $factory->createDir('dir'));
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$factory = $container->getFactory();
+
+		$container->getRootDirectory()->addDirectory($d = $factory->createDir('dir'));
 		$d->addLink($factory->createLink('link', $d));
 
-		self::assertTrue(is_link($fs->getPathWithScheme('/dir/link')));
+		self::assertTrue(is_link("$scheme://dir/link"));
 	}
 
 	public function testIsFile(): void
 	{
-		$fs = new FileSystem();
-		$factory = $fs->getContainer()->getFactory();
-		$fs->getRoot()->addDirectory($d = $factory->createDir('dir'));
-		$d->addFile($factory->createFile('file'));
-		$fs->getRoot()->addFile($factory->createFile('file2'));
-		$d->addDirectory($factory->createDir('dir'));
+		$scheme = VFS::register();
 
-		self::assertTrue(is_file($fs->getPathWithScheme('/dir/file')));
-		self::assertFalse(is_file($fs->getPathWithScheme('/dir')));
-		self::assertFalse(is_file($fs->getPathWithScheme('/dir/dir')));
-		self::assertFalse(is_file($fs->getPathWithScheme('/')));
-		self::assertTrue(is_file($fs->getPathWithScheme('/file2')));
+		mkdir($dir = "$scheme://dir");
 
+		touch("$dir/file");
+		touch("$scheme://file2");
+		mkdir("$dir/dir");
+
+		self::assertTrue(is_file("$dir/file"));
+		self::assertFalse(is_file($dir));
+		self::assertFalse(is_file("$dir/dir"));
+		self::assertFalse(is_file("$scheme://"));
+		self::assertTrue(is_file("$scheme://file2"));
 	}
 
 	public function testChmod(): void
 	{
-		$fs = new FileSystem();
-		$path = $fs->getPathWithScheme('/');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$root = $container->getRootDirectory();
+
+		$path = "$scheme://";
 
 		chmod($path, 0_777);
-		self::assertEquals(0_777 | Directory::getStatType(), $fs->getRoot()->getMode());
+		self::assertEquals(0_777 | Directory::getStatType(), $root->getMode());
 
-		$fs->getRoot()->setMode(0_755);
+		$root->setMode(0_755);
 		self::assertEquals(0_755 | Directory::getStatType(), fileperms($path));
 
 		//accessing non existent file should return false
-		self::assertFalse(chmod($fs->getPathWithScheme('/nonExistingFile'), 0_777));
+		self::assertFalse(chmod("$scheme://nonExistingFile", 0_777));
 
 	}
 
@@ -194,13 +196,14 @@ final class WrapperTest extends TestCase
 			);
 		}
 
-		$fs = new FileSystem();
-		$fs->getContainer()->setPermissionHelper(
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->setPermissionHelper(
 			new PermissionHelper(PermissionHelper::ROOT_ID, PermissionHelper::ROOT_ID),
 		);
 
-		chown($fs->getPathWithScheme('/'), 'root');
-		self::assertEquals('root', posix_getpwuid(fileowner($fs->getPathWithScheme('/')))['name']);
+		chown("$scheme://", 'root');
+		self::assertEquals('root', posix_getpwuid(fileowner("$scheme://"))['name']);
 	}
 
 	public function testChownById(): void
@@ -211,14 +214,15 @@ final class WrapperTest extends TestCase
 			);
 		}
 
-		$fs = new FileSystem();
-		$fs->getContainer()->setPermissionHelper(
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->setPermissionHelper(
 			new PermissionHelper(PermissionHelper::ROOT_ID, PermissionHelper::ROOT_ID),
 		);
 
-		chown($fs->getPathWithScheme('/'), 0);
+		chown("$scheme://", 0);
 
-		self::assertEquals(0, fileowner($fs->getPathWithScheme('/')));
+		self::assertEquals(0, fileowner("$scheme://"));
 
 	}
 
@@ -231,8 +235,9 @@ final class WrapperTest extends TestCase
 			);
 		}
 
-		$fs = new FileSystem();
-		$fs->getContainer()->setPermissionHelper(
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->setPermissionHelper(
 			new PermissionHelper(PermissionHelper::ROOT_ID, PermissionHelper::ROOT_ID),
 		);
 
@@ -240,9 +245,9 @@ final class WrapperTest extends TestCase
 		//this is needed to find string name of group root belongs to
 		$group = posix_getgrgid(posix_getpwuid(0)['gid'])['name'];
 
-		chgrp($fs->getPathWithScheme('/'), $group);
+		chgrp("$scheme://", $group);
 
-		self::assertEquals($group, posix_getgrgid(filegroup($fs->getPathWithScheme('/')))['name']);
+		self::assertEquals($group, posix_getgrgid(filegroup("$scheme://"))['name']);
 	}
 
 	public function testChgrpById(): void
@@ -254,31 +259,33 @@ final class WrapperTest extends TestCase
 			);
 		}
 
-		$fs = new FileSystem();
-		$fs->getContainer()->setPermissionHelper(
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->setPermissionHelper(
 			new PermissionHelper(PermissionHelper::ROOT_ID, PermissionHelper::ROOT_ID),
 		);
 
 		//lets workout available group
 		$group = posix_getpwuid(0)['gid'];
 
-		chgrp($fs->getPathWithScheme('/'), $group);
+		chgrp("$scheme://", $group);
 
-		self::assertEquals($group, filegroup($fs->getPathWithScheme('/')));
+		self::assertEquals($group, filegroup("$scheme://"));
 	}
 
 	public function testMkdir(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
 
-		mkdir($fs->getPathWithScheme('/dir'));
+		mkdir("$scheme://dir");
 
-		self::assertFileExists($fs->getPathWithScheme('/dir'));
-		self::assertDirectoryExists($fs->getPathWithScheme('/dir'));
+		self::assertFileExists("$scheme://dir");
+		self::assertDirectoryExists("$scheme://dir");
 
-		mkdir($fs->getPathWithScheme('/dir2'), 0_000, false);
+		mkdir("$scheme://dir2", 0_000, false);
 
-		$dir = $fs->getContainer()->getNodeAt('/dir2');
+		$dir = $container->getNodeAt('/dir2');
 
 		self::assertEquals(0_000 | Directory::getStatType(), $dir->getMode());
 
@@ -286,10 +293,10 @@ final class WrapperTest extends TestCase
 
 	public function testMkdirCatchesClashes(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
 
-		mkdir($fs->getPathWithScheme('/dir'));
-		@mkdir($fs->getPathWithScheme('/dir'));
+		mkdir("$scheme://dir");
+		@mkdir("$scheme://dir");
 
 		$error = error_get_last();
 
@@ -298,14 +305,14 @@ final class WrapperTest extends TestCase
 
 	public function testMkdirRecursive(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
 
-		mkdir($fs->getPathWithScheme('/dir/dir2'), 0_777, true);
+		mkdir("$scheme://dir/dir2", 0_777, true);
 
-		self::assertFileExists($fs->getPathWithScheme('/dir/dir2'));
-		self::assertDirectoryExists($fs->getPathWithScheme('/dir/dir2'));
+		self::assertFileExists("$scheme://dir/dir2");
+		self::assertDirectoryExists("$scheme://dir/dir2");
 
-		@mkdir($fs->getPathWithScheme('/dir/a/b'), 0_777, false);
+		@mkdir("$scheme://dir/a/b", 0_777, false);
 
 		$error = error_get_last();
 
@@ -315,39 +322,40 @@ final class WrapperTest extends TestCase
 
 	public function testStreamWriting(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
 
-		file_put_contents($fs->getPathWithScheme('/file'), 'data');
+		file_put_contents("$scheme://file", 'data');
 
-		self::assertEquals('data', $fs->getContainer()->getFileAt('/file')->getData());
+		self::assertEquals('data', $container->getFileAt('/file')->getData());
 
 		//long strings
-		file_put_contents($fs->getPathWithScheme('/file2'), str_repeat('data ', 5_000));
+		file_put_contents("$scheme://file2", str_repeat('data ', 5_000));
 
-		self::assertEquals(str_repeat('data ', 5_000), $fs->getContainer()->getFileAt('/file2')->getData());
+		self::assertEquals(str_repeat('data ', 5_000), $container->getFileAt('/file2')->getData());
 
 		//truncating
-		file_put_contents($fs->getPathWithScheme('/file'), 'data2');
+		file_put_contents("$scheme://file", 'data2');
 
-		self::assertEquals('data2', $fs->getContainer()->getFileAt('/file')->getData());
+		self::assertEquals('data2', $container->getFileAt('/file')->getData());
 
 		//appending
-		file_put_contents($fs->getPathWithScheme('/file'), 'data3', FILE_APPEND);
+		file_put_contents("$scheme://file", 'data3', FILE_APPEND);
 
-		self::assertEquals('data2data3', $fs->getContainer()->getFileAt('/file')->getData());
+		self::assertEquals('data2data3', $container->getFileAt('/file')->getData());
 
-		$handle = fopen($fs->getPathWithScheme('/file2'), 'w');
+		$handle = fopen("$scheme://file2", 'w');
 
 		fwrite($handle, 'data');
-		self::assertEquals('data', $fs->getContainer()->getFileAt('/file2')->getData());
+		self::assertEquals('data', $container->getFileAt('/file2')->getData());
 
 		fwrite($handle, '2');
-		self::assertEquals('data2', $fs->getContainer()->getFileAt('/file2')->getData(), 'Pointer advanced');
+		self::assertEquals('data2', $container->getFileAt('/file2')->getData(), 'Pointer advanced');
 
 		fwrite($handle, 'data', 1);
 		self::assertEquals(
 			'data2d',
-			$fs->getContainer()->getFileAt('/file2')->getData(),
+			$container->getFileAt('/file2')->getData(),
 			'Written with limited length',
 		);
 
@@ -355,35 +363,36 @@ final class WrapperTest extends TestCase
 
 	public function testStreamReading(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createFile('/file', 'test data');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createFile('/file', 'test data');
 
-		self::assertEquals('test data', file_get_contents($fs->getPathWithScheme('/file')));
+		self::assertEquals('test data', file_get_contents("$scheme://file"));
 
 		//long string
-		$fs->getContainer()->createFile('/file2', str_repeat('test data', 5_000));
-		self::assertEquals(str_repeat('test data', 5_000), file_get_contents($fs->getPathWithScheme('/file2')));
+		$container->createFile('/file2', str_repeat('test data', 5_000));
+		self::assertEquals(str_repeat('test data', 5_000), file_get_contents("$scheme://file2"));
 
-		$fs->getContainer()->createDir('/dir');
+		$container->createDir('/dir');
 
-		self::assertEmpty(file_get_contents($fs->getPathWithScheme('/dir')));
+		self::assertEmpty(file_get_contents("$scheme://dir"));
 
 	}
 
 	public function testStreamFlushing(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
 
-		$handle = fopen($fs->getPathWithScheme('/file'), 'w');
+		$handle = fopen("$scheme://file", 'w');
 
 		self::assertTrue(fflush($handle));
 	}
 
 	public function testOpeningForReadingOnNonExistingFails(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
 
-		self::assertFalse(@fopen($fs->getPathWithScheme('/nonExistingFile'), 'r'));
+		self::assertFalse(@fopen("$scheme://nonExistingFile", 'r'));
 
 		$error = error_get_last();
 
@@ -402,15 +411,16 @@ final class WrapperTest extends TestCase
 
 	public function testOpeningForWritingCorrectlyOpensAndTruncatesFile(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
 
-		$handle = fopen($fs->getPathWithScheme('/nonExistingFile'), 'w');
+		$handle = fopen("$scheme://nonExistingFile", 'w');
 
 		self::assertIsResource($handle);
 
-		$file = $fs->getContainer()->createFile('/file', 'data');
+		$file = $container->createFile('/file', 'data');
 
-		$handle = fopen($fs->getPathWithScheme('/file'), 'w');
+		$handle = fopen("$scheme://file", 'w');
 
 		self::assertIsResource($handle);
 		self::assertEmpty($file->getData());
@@ -418,10 +428,11 @@ final class WrapperTest extends TestCase
 
 	public function testOpeningForAppendingDoesNotTruncateFile(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getContainer()->createFile('/file', 'data');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = $container->createFile('/file', 'data');
 
-		$handle = fopen($fs->getPathWithScheme('/file'), 'a');
+		$handle = fopen("$scheme://file", 'a');
 
 		self::assertIsResource($handle);
 		self::assertEquals('data', $file->getData());
@@ -430,9 +441,9 @@ final class WrapperTest extends TestCase
 
 	public function testCreatingFileWhileOpeningFailsCorrectly(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
 
-		self::assertFalse(@fopen($fs->getPathWithScheme('/dir/file'), 'w'));
+		self::assertFalse(@fopen("$scheme://dir/file", 'w'));
 
 		$error = error_get_last();
 
@@ -445,19 +456,21 @@ final class WrapperTest extends TestCase
 
 	public function testFileGetContentsOffsetsAndLimitsCorrectly(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createFile('/file', '--data--');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createFile('/file', '--data--');
 
-		self::assertEquals('data', file_get_contents($fs->getPathWithScheme('/file'), false, null, 2, 4));
+		self::assertEquals('data', file_get_contents("$scheme://file", false, null, 2, 4));
 
 	}
 
 	public function testFileSeeking(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createFile('/file', 'data');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createFile('/file', 'data');
 
-		$handle = fopen($fs->getPathWithScheme('/file'), 'r');
+		$handle = fopen("$scheme://file", 'r');
 
 		fseek($handle, 2);
 		self::assertEquals(2, ftell($handle));
@@ -471,11 +484,12 @@ final class WrapperTest extends TestCase
 
 	public function testFileTruncating(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getContainer()->createFile('/file', 'data--');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = $container->createFile('/file', 'data--');
 
 		//has to opened for append otherwise file is automatically truncated by 'w' opening mode
-		$handle = fopen($fs->getPathWithScheme('/file'), 'a');
+		$handle = fopen("$scheme://file", 'a');
 
 		ftruncate($handle, 4);
 
@@ -485,35 +499,36 @@ final class WrapperTest extends TestCase
 
 	public function testOpeningModesAreHandledCorrectly(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getContainer()->createFile('/file', 'data');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = $container->createFile('/file', 'data');
 
-		$handle = fopen($fs->getPathWithScheme('/file'), 'r');
+		$handle = fopen("$scheme://file", 'r');
 		self::assertEquals('data', fread($handle, 4), 'Contents can be read in read mode');
 		self::assertEquals(0, fwrite($handle, '--'), '0 bytes should be written in readonly mode');
 
-		$handle = fopen($fs->getPathWithScheme('/file'), 'r+');
+		$handle = fopen("$scheme://file", 'r+');
 		self::assertEquals('data', fread($handle, 4), 'Contents can be read in extended read mode');
 		self::assertEquals(2, fwrite($handle, '--'), '2 bytes should be written in extended readonly mode');
 
-		$handle = fopen($fs->getPathWithScheme('/file'), 'w');
+		$handle = fopen("$scheme://file", 'w');
 		self::assertEquals(4, fwrite($handle, 'data'), '4 bytes written in writeonly mode');
 		fseek($handle, 0);
 		self::assertEmpty(fread($handle, 4), 'No bytes read in write only mode');
 
-		$handle = fopen($fs->getPathWithScheme('/file'), 'w+');
+		$handle = fopen("$scheme://file", 'w+');
 		self::assertEquals(4, fwrite($handle, 'data'), '4 bytes written in extended writeonly mode');
 		fseek($handle, 0);
 		self::assertEquals('data', fread($handle, 4), 'Bytes read in extended write only mode');
 
 		$file->setData('data');
 
-		$handle = fopen($fs->getPathWithScheme('/file'), 'a');
+		$handle = fopen("$scheme://file", 'a');
 		self::assertEquals(4, fwrite($handle, 'data'), '4 bytes written in append mode');
 		fseek($handle, 0);
 		self::assertEmpty(fread($handle, 4), 'No bytes read in append mode');
 
-		$handle = fopen($fs->getPathWithScheme('/file'), 'a+');
+		$handle = fopen("$scheme://file", 'a+');
 		self::assertEquals(4, fwrite($handle, 'data'), '4 bytes written in extended append mode');
 		fseek($handle, 0);
 		self::assertEquals('datadata', fread($handle, 8), 'Bytes read in extended append mode');
@@ -522,10 +537,11 @@ final class WrapperTest extends TestCase
 
 	public function testFileTimesAreModifiedCorrectly(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getContainer()->createFile('/file', 'data');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = $container->createFile('/file', 'data');
 
-		$stat = stat($fs->getPathWithScheme('/file'));
+		$stat = stat("$scheme://file");
 
 		self::assertNotEquals(0, $stat['atime']);
 		self::assertNotEquals(0, $stat['mtime']);
@@ -535,8 +551,8 @@ final class WrapperTest extends TestCase
 		$file->setModificationTime(10);
 		$file->setChangeTime(10);
 
-		file_get_contents($fs->getPathWithScheme('/file'));
-		$stat = stat($fs->getPathWithScheme('/file'));
+		file_get_contents("$scheme://file");
+		$stat = stat("$scheme://file");
 
 		self::assertNotEquals(10, $stat['atime'], 'Access time has changed after read');
 		self::assertEquals(10, $stat['mtime'], 'Modification time has not changed after read');
@@ -546,8 +562,8 @@ final class WrapperTest extends TestCase
 		$file->setModificationTime(10);
 		$file->setChangeTime(10);
 
-		file_put_contents($fs->getPathWithScheme('/file'), 'data');
-		$stat = stat($fs->getPathWithScheme('/file'));
+		file_put_contents("$scheme://file", 'data');
+		$stat = stat("$scheme://file");
 
 		self::assertEquals(10, $stat['atime'], 'Access time has not changed after write');
 		self::assertNotEquals(10, $stat['mtime'], 'Modification time has changed after write');
@@ -557,8 +573,8 @@ final class WrapperTest extends TestCase
 		$file->setModificationTime(10);
 		$file->setChangeTime(10);
 
-		chmod($fs->getPathWithScheme('/file'), 0_777);
-		$stat = stat($fs->getPathWithScheme('/file'));
+		chmod("$scheme://file", 0_777);
+		$stat = stat("$scheme://file");
 
 		self::assertEquals(10, $stat['atime'], 'Access time has not changed after inode change');
 		self::assertEquals(10, $stat['mtime'], 'Modification time has not changed after inode change');
@@ -570,8 +586,8 @@ final class WrapperTest extends TestCase
 
 		clearstatcache();
 
-		fopen($fs->getPathWithScheme('/file'), 'r');
-		$stat = stat($fs->getPathWithScheme('/file'));
+		fopen("$scheme://file", 'r');
+		$stat = stat("$scheme://file");
 
 		self::assertEquals(10, $stat['atime'], 'Access time has not changed after opening for reading');
 		self::assertEquals(10, $stat['mtime'], 'Modification time has not changed after opening for reading');
@@ -581,8 +597,8 @@ final class WrapperTest extends TestCase
 		$file->setModificationTime(20);
 		$file->setChangeTime(20);
 
-		fopen($fs->getPathWithScheme('/file'), 'w');
-		$stat = stat($fs->getPathWithScheme('/file'));
+		fopen("$scheme://file", 'w');
+		$stat = stat("$scheme://file");
 
 		self::assertEquals(20, $stat['atime'], 'Access time has not changed after opening for writing');
 		self::assertNotEquals(20, $stat['mtime'], 'Modification time has changed after opnening for writing');
@@ -592,13 +608,14 @@ final class WrapperTest extends TestCase
 
 	public function testTouchFileCreation(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
 
-		touch($fs->getPathWithScheme('/file2'));
+		touch("$scheme://file2");
 
-		self::assertFileExists($fs->getPathWithScheme('/file2'));
+		self::assertFileExists("$scheme://file2");
 
-		@touch($fs->getPathWithScheme('/dir/file'));
+		@touch("$scheme://dir/file");
 
 		$error = error_get_last();
 
@@ -608,14 +625,14 @@ final class WrapperTest extends TestCase
 			'Fails when no parent',
 		);
 
-		$file = $fs->getContainer()->getNodeAt('/file2');
+		$file = $container->getNodeAt('/file2');
 
 		$file->setAccessTime(20);
 		$file->setModificationTime(20);
 		$file->setChangeTime(20);
 
-		touch($fs->getPathWithScheme('/file2'));
-		$stat = stat($fs->getPathWithScheme('/file2'));
+		touch("$scheme://file2");
+		$stat = stat("$scheme://file2");
 
 		self::assertNotEquals(20, $stat['atime'], 'Access time has changed after touch');
 		self::assertNotEquals(20, $stat['mtime'], 'Modification time has changed after touch');
@@ -625,8 +642,8 @@ final class WrapperTest extends TestCase
 
 	public function testTouchUpdatesTimes(): void
 	{
-		$fs = new FileSystem();
-		$path = $fs->getPathWithScheme('/file');
+		$scheme = VFS::register();
+		$path = "$scheme://file";
 
 		$time = 1_500_020_720;
 		$atime = 1_500_204_791;
@@ -640,21 +657,23 @@ final class WrapperTest extends TestCase
 
 	public function testRenamesMovesFileCorrectly(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createFile('/file', 'data');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createFile('/file', 'data');
 
-		rename($fs->getPathWithScheme('/file'), $fs->getPathWithScheme('/file2'));
+		rename("$scheme://file", "$scheme://file2");
 
-		self::assertTrue($fs->getContainer()->hasNodeAt('/file2'));
-		self::assertFalse($fs->getContainer()->hasNodeAt('/file'));
-		self::assertEquals('data', $fs->getContainer()->getFileAt('/file2')->getData());
+		self::assertTrue($container->hasNodeAt('/file2'));
+		self::assertFalse($container->hasNodeAt('/file'));
+		self::assertEquals('data', $container->getFileAt('/file2')->getData());
 	}
 
 	public function testRenameReturnsCorrectWarnings(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
 
-		@rename($fs->getPathWithScheme('/file'), $fs->getPathWithScheme('/dir/file2'));
+		@rename("$scheme://file", "$scheme://dir/file2");
 
 		$error = error_get_last();
 
@@ -664,9 +683,9 @@ final class WrapperTest extends TestCase
 			'Triggers when moving non existing file',
 		);
 
-		$fs->getContainer()->createFile('/file');
+		$container->createFile('/file');
 
-		@rename($fs->getPathWithScheme('/file'), $fs->getPathWithScheme('/dir/file2'));
+		@rename("$scheme://file", "$scheme://dir/file2");
 
 		$error = error_get_last();
 
@@ -676,9 +695,9 @@ final class WrapperTest extends TestCase
 			'Triggers when moving to non existing directory',
 		);
 
-		$fs->getContainer()->createDir('/dir');
+		$container->createDir('/dir');
 
-		@rename($fs->getPathWithScheme('/dir'), $fs->getPathWithScheme('/file'));
+		@rename("$scheme://dir", "$scheme://file");
 
 		$error = error_get_last();
 
@@ -692,34 +711,37 @@ final class WrapperTest extends TestCase
 
 	public function testRenameFailsCorrectly(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
 
-		self::assertFalse(@rename($fs->getPathWithScheme('/file'), $fs->getPathWithScheme('/dir/file2')));
+		self::assertFalse(@rename("$scheme://file", "$scheme://dir/file2"));
 
-		$fs->getContainer()->createFile('/file');
+		$container->createFile('/file');
 
-		self::assertFalse(@rename($fs->getPathWithScheme('/file'), $fs->getPathWithScheme('/dir/file2')));
+		self::assertFalse(@rename("$scheme://file", "$scheme://dir/file2"));
 
-		$fs->getContainer()->createDir('/dir');
+		$container->createDir('/dir');
 
-		self::assertFalse(@rename($fs->getPathWithScheme('/dir'), $fs->getPathWithScheme('/file')));
+		self::assertFalse(@rename("$scheme://dir", "$scheme://file"));
 	}
 
 	public function testUnlinkRemovesFile(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createFile('/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createFile('/file');
 
-		unlink($fs->getPathWithScheme('/file'));
+		unlink("$scheme://file");
 
-		self::assertFalse($fs->getContainer()->hasNodeAt('/file'));
+		self::assertFalse($container->hasNodeAt('/file'));
 	}
 
 	public function testUnlinkThrowsWarnings(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
 
-		@unlink($fs->getPathWithScheme('/file'));
+		@unlink("$scheme://file");
 
 		$error = error_get_last();
 
@@ -729,9 +751,9 @@ final class WrapperTest extends TestCase
 			'Warning when file does not exist',
 		);
 
-		$fs->getContainer()->createDir('/dir');
+		$container->createDir('/dir');
 
-		@unlink($fs->getPathWithScheme('/dir'));
+		@unlink("$scheme://dir");
 
 		$error = error_get_last();
 
@@ -745,20 +767,22 @@ final class WrapperTest extends TestCase
 
 	public function testRmdirRemovesDirectories(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createDir('/dir');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createDir('/dir');
 
-		rmdir($fs->getPathWithScheme('/dir'));
+		rmdir("$scheme://dir");
 
-		self::assertFalse($fs->getContainer()->hasNodeAt('/dir'), 'Directory has been removed');
+		self::assertFalse($container->hasNodeAt('/dir'), 'Directory has been removed');
 	}
 
 	public function testRmdirErrorsWithNonEmptyDirectories(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createDir('/dir/dir', true);
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createDir('/dir/dir', true);
 
-		@rmdir($fs->getPathWithScheme('/dir'));
+		@rmdir("$scheme://dir");
 
 		$error = error_get_last();
 
@@ -771,9 +795,9 @@ final class WrapperTest extends TestCase
 
 	public function testRmdirErrorsWhenRemovingNonExistingDirectory(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
 
-		@rmdir($fs->getPathWithScheme('/dir'));
+		@rmdir("$scheme://dir");
 
 		$error = error_get_last();
 
@@ -786,10 +810,11 @@ final class WrapperTest extends TestCase
 
 	public function testRmdirErrorsWhenRemovingFile(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createFile('/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createFile('/file');
 
-		@rmdir($fs->getPathWithScheme('/file'));
+		@rmdir("$scheme://file");
 
 		$error = error_get_last();
 
@@ -802,17 +827,17 @@ final class WrapperTest extends TestCase
 
 	public function testStreamOpenWarnsWhenFlagPassed(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
 		$opened_path = null;
 
 		$wrapper = new StreamWrapper();
 
 		self::assertFalse(
-			$wrapper->stream_open($fs->getPathWithScheme('/file'), 'r', 0, $opened_path),
+			$wrapper->stream_open("$scheme://file", 'r', 0, $opened_path),
 			'No warning when no flag',
 		);
 
-		@$wrapper->stream_open($fs->getPathWithScheme('/file'), 'r', STREAM_REPORT_ERRORS, $opened_path);
+		@$wrapper->stream_open("$scheme://file", 'r', STREAM_REPORT_ERRORS, $opened_path);
 
 		$error = error_get_last();
 
@@ -826,16 +851,17 @@ final class WrapperTest extends TestCase
 
 	public function testDirectoryOpensForReading(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createDir('/dir');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createDir('/dir');
 
 		$wrapper = new StreamWrapper();
 
-		$handle = $wrapper->dir_opendir($fs->getPathWithScheme('/dir'), STREAM_BUFFER_NONE);
+		$handle = $wrapper->dir_opendir("$scheme://dir", STREAM_BUFFER_NONE);
 
 		self::assertTrue($handle, 'Directory opened for reading');
 
-		$handle = @$wrapper->dir_opendir($fs->getPathWithScheme('/nonExistingDir'), STREAM_BUFFER_NONE);
+		$handle = @$wrapper->dir_opendir("$scheme://nonExistingDir", STREAM_BUFFER_NONE);
 
 		self::assertFalse($handle, 'Non existing directory not opened for reading');
 
@@ -847,19 +873,20 @@ final class WrapperTest extends TestCase
 			'Opening non existing directory triggers warning',
 		);
 
-		$handle = opendir($fs->getPathWithScheme('/dir'));
+		$handle = opendir("$scheme://dir");
 
 		self::assertIsResource($handle, 'opendir uses dir_opendir');
 	}
 
 	public function testDirectoryOpenDoesNotOpenFiles(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createFile('/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createFile('/file');
 
 		$wrapper = new StreamWrapper();
 
-		$handle = @$wrapper->dir_opendir($fs->getPathWithScheme('/file'), STREAM_BUFFER_NONE);
+		$handle = @$wrapper->dir_opendir("$scheme://file", STREAM_BUFFER_NONE);
 
 		self::assertFalse($handle, 'Opening fiels with opendir fails');
 
@@ -874,27 +901,29 @@ final class WrapperTest extends TestCase
 
 	public function testDirectoryCloses(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createDir('/dir');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createDir('/dir');
 
 		$wrapper = new StreamWrapper();
 
 		self::assertFalse($wrapper->dir_closedir(), 'Returns false when no dir opened');
 
-		$wrapper->dir_opendir($fs->getPathWithScheme('/dir'), STREAM_BUFFER_NONE);
+		$wrapper->dir_opendir("$scheme://dir", STREAM_BUFFER_NONE);
 
 		self::assertTrue($wrapper->dir_closedir());
 	}
 
 	public function testDirectoryReading(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createDir('/dir1');
-		$fs->getContainer()->createDir('/dir2');
-		$fs->getContainer()->createDir('/dir3');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createDir('/dir1');
+		$container->createDir('/dir2');
+		$container->createDir('/dir3');
 
 		$wr = new StreamWrapper();
-		$wr->dir_opendir($fs->getPathWithScheme('/'), STREAM_BUFFER_NONE);
+		$wr->dir_opendir("$scheme://", STREAM_BUFFER_NONE);
 
 		self::assertEquals('dir1', $wr->dir_readdir());
 		self::assertEquals('dir2', $wr->dir_readdir());
@@ -908,14 +937,15 @@ final class WrapperTest extends TestCase
 
 	public function testDirectoryIterationWithDirectoryIterator(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createDir('/dir1');
-		$fs->getContainer()->createDir('/dir2');
-		$fs->getContainer()->createDir('/dir3');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createDir('/dir1');
+		$container->createDir('/dir2');
+		$container->createDir('/dir3');
 
 		$result = [];
 
-		foreach (new DirectoryIterator($fs->getPathWithScheme('/')) as $fileInfo) {
+		foreach (new DirectoryIterator("$scheme://") as $fileInfo) {
 			$result[] = $fileInfo->getBasename();
 		}
 
@@ -925,19 +955,20 @@ final class WrapperTest extends TestCase
 
 	public function testStreamOpenDoesNotOpenDirectoriesForWriting(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createDir('/dir');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createDir('/dir');
 
-		self::assertFalse(@fopen($fs->getPathWithScheme('/dir'), 'w'));
-		self::assertFalse(@fopen($fs->getPathWithScheme('/dir'), 'r+'));
-		self::assertFalse(@fopen($fs->getPathWithScheme('/dir'), 'w+'));
-		self::assertFalse(@fopen($fs->getPathWithScheme('/dir'), 'a'));
-		self::assertFalse(@fopen($fs->getPathWithScheme('/dir'), 'a+'));
+		self::assertFalse(@fopen("$scheme://dir", 'w'));
+		self::assertFalse(@fopen("$scheme://dir", 'r+'));
+		self::assertFalse(@fopen("$scheme://dir", 'w+'));
+		self::assertFalse(@fopen("$scheme://dir", 'a'));
+		self::assertFalse(@fopen("$scheme://dir", 'a+'));
 
 		$opened_path = null;
 
 		$wr = new StreamWrapper();
-		@$wr->stream_open($fs->getPathWithScheme('/dir'), 'w', STREAM_REPORT_ERRORS, $opened_path);
+		@$wr->stream_open("$scheme://dir", 'w', STREAM_REPORT_ERRORS, $opened_path);
 
 		$error = error_get_last();
 
@@ -950,10 +981,11 @@ final class WrapperTest extends TestCase
 
 	public function testStreamOpenAllowsForDirectoryOpeningForReadingAndReturnsEmptyStrings(): void
 	{
-		$fs = new FileSystem();
-		$fs->getContainer()->createDir('/dir');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createDir('/dir');
 
-		$handle = fopen($fs->getPathWithScheme('/dir'), 'r');
+		$handle = fopen("$scheme://dir", 'r');
 
 		self::assertIsResource($handle);
 
@@ -962,8 +994,9 @@ final class WrapperTest extends TestCase
 
 	public function testPermissionsAreCheckedWhenOpeningFiles(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getContainer()->createFile('/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = $container->createFile('/file');
 		$openedPath = null;
 
 		$wr = new StreamWrapper();
@@ -971,49 +1004,50 @@ final class WrapperTest extends TestCase
 		$file->setMode(0_000);
 		$file->setUser(PermissionHelper::ROOT_ID);
 		$file->setGroup(PermissionHelper::ROOT_ID);
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'r', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'r+', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'w', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'w+', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'a', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'a+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'r', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'r+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'w', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'w+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'a', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'a+', 0, $openedPath));
 
 		$file->setMode(0_400);
 		$file->setUser($this->uid);
 		$file->setGroup(PermissionHelper::ROOT_ID);
-		self::assertTrue($wr->stream_open($fs->getPathWithScheme('/file'), 'r', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'r+', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'w', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'w+', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'a', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'a+', 0, $openedPath));
+		self::assertTrue($wr->stream_open("$scheme://file", 'r', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'r+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'w', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'w+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'a', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'a+', 0, $openedPath));
 
 		$file->setMode(0_200);
 		$file->setUser($this->uid);
 		$file->setGroup(PermissionHelper::ROOT_ID);
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'r', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'r+', 0, $openedPath));
-		self::assertTrue($wr->stream_open($fs->getPathWithScheme('/file'), 'w', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'w+', 0, $openedPath));
-		self::assertTrue($wr->stream_open($fs->getPathWithScheme('/file'), 'a', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/file'), 'a+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'r', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'r+', 0, $openedPath));
+		self::assertTrue($wr->stream_open("$scheme://file", 'w', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'w+', 0, $openedPath));
+		self::assertTrue($wr->stream_open("$scheme://file", 'a', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://file", 'a+', 0, $openedPath));
 
 		$file->setMode(0_600);
 		$file->setUser($this->uid);
 		$file->setGroup(PermissionHelper::ROOT_ID);
-		self::assertTrue($wr->stream_open($fs->getPathWithScheme('/file'), 'r', 0, $openedPath));
-		self::assertTrue($wr->stream_open($fs->getPathWithScheme('/file'), 'r+', 0, $openedPath));
-		self::assertTrue($wr->stream_open($fs->getPathWithScheme('/file'), 'w', 0, $openedPath));
-		self::assertTrue($wr->stream_open($fs->getPathWithScheme('/file'), 'w+', 0, $openedPath));
-		self::assertTrue($wr->stream_open($fs->getPathWithScheme('/file'), 'a', 0, $openedPath));
-		self::assertTrue($wr->stream_open($fs->getPathWithScheme('/file'), 'a+', 0, $openedPath));
+		self::assertTrue($wr->stream_open("$scheme://file", 'r', 0, $openedPath));
+		self::assertTrue($wr->stream_open("$scheme://file", 'r+', 0, $openedPath));
+		self::assertTrue($wr->stream_open("$scheme://file", 'w', 0, $openedPath));
+		self::assertTrue($wr->stream_open("$scheme://file", 'w+', 0, $openedPath));
+		self::assertTrue($wr->stream_open("$scheme://file", 'a', 0, $openedPath));
+		self::assertTrue($wr->stream_open("$scheme://file", 'a+', 0, $openedPath));
 
 	}
 
 	public function testTemporaryFileCreatedToReadDirectoriesWithStreamOpenInheritsPermissions(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getContainer()->createDir('/dir');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = $container->createDir('/dir');
 		$openedPath = null;
 
 		$wr = new StreamWrapper();
@@ -1021,48 +1055,49 @@ final class WrapperTest extends TestCase
 		$file->setMode(0_000);
 		$file->setUser(PermissionHelper::ROOT_ID);
 		$file->setGroup(PermissionHelper::ROOT_ID);
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'r', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'r+', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'w', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'w+', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'a', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'a+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'r', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'r+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'w', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'w+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'a', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'a+', 0, $openedPath));
 
 		$file->setMode(0_400);
 		$file->setUser($this->uid);
 		$file->setGroup(PermissionHelper::ROOT_ID);
-		self::assertTrue($wr->stream_open($fs->getPathWithScheme('/dir'), 'r', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'r+', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'w', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'w+', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'a', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'a+', 0, $openedPath));
+		self::assertTrue($wr->stream_open("$scheme://dir", 'r', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'r+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'w', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'w+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'a', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'a+', 0, $openedPath));
 
 		$file->setMode(0_200);
 		$file->setUser($this->uid);
 		$file->setGroup(PermissionHelper::ROOT_ID);
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'r', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'r+', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'w', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'w+', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'a', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'a+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'r', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'r+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'w', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'w+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'a', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'a+', 0, $openedPath));
 
 		$file->setMode(0_600);
 		$file->setUser($this->uid);
 		$file->setGroup(PermissionHelper::ROOT_ID);
-		self::assertTrue($wr->stream_open($fs->getPathWithScheme('/dir'), 'r', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'r+', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'w', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'w+', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'a', 0, $openedPath));
-		self::assertFalse($wr->stream_open($fs->getPathWithScheme('/dir'), 'a+', 0, $openedPath));
+		self::assertTrue($wr->stream_open("$scheme://dir", 'r', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'r+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'w', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'w+', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'a', 0, $openedPath));
+		self::assertFalse($wr->stream_open("$scheme://dir", 'a+', 0, $openedPath));
 	}
 
 	public function testPermissionsAreCheckedWhenOpeningDirectories(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getContainer()->createDir('/dir');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = $container->createDir('/dir');
 		$openedPath = null;
 
 		$wr = new StreamWrapper();
@@ -1070,51 +1105,53 @@ final class WrapperTest extends TestCase
 		$file->setMode(0_000);
 		$file->setUser(PermissionHelper::ROOT_ID);
 		$file->setGroup(PermissionHelper::ROOT_ID);
-		self::assertFalse(@$wr->dir_opendir($fs->getPathWithScheme('/dir'), STREAM_BUFFER_NONE));
+		self::assertFalse(@$wr->dir_opendir("$scheme://dir", STREAM_BUFFER_NONE));
 
 		$file->setMode(0_200);
 		$file->setUser($this->uid);
 		$file->setGroup(PermissionHelper::ROOT_ID);
-		self::assertFalse(@$wr->dir_opendir($fs->getPathWithScheme('/dir'), STREAM_BUFFER_NONE));
+		self::assertFalse(@$wr->dir_opendir("$scheme://dir", STREAM_BUFFER_NONE));
 
 		$file->setMode(0_400);
 		$file->setUser($this->uid);
 		$file->setGroup(PermissionHelper::ROOT_ID);
-		self::assertTrue(@$wr->stream_open($fs->getPathWithScheme('/dir'), 'r', 0, $openedPath));
+		self::assertTrue(@$wr->stream_open("$scheme://dir", 'r', 0, $openedPath));
 
 		$file->setMode(0_040);
 		$file->setUser(PermissionHelper::ROOT_ID);
 		$file->setGroup($this->gid);
-		self::assertTrue(@$wr->stream_open($fs->getPathWithScheme('/dir'), 'r', 0, $openedPath));
+		self::assertTrue(@$wr->stream_open("$scheme://dir", 'r', 0, $openedPath));
 	}
 
 	public function testPermissionsAreCheckedWhenCreatingFilesWithinDirectories(): void
 	{
-		$fs = new FileSystem();
-		$dir = $fs->createDirectory('/dir');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$dir = $container->createDir('/dir');
 
 		$dir->setMode(0_000);
-		self::assertFalse(@file_put_contents($fs->getPathWithScheme('/dir/file'), 'data'));
+		self::assertFalse(@file_put_contents("$scheme://dir/file", 'data'));
 
 		$dir->setMode(0_400);
-		self::assertFalse(@file_put_contents($fs->getPathWithScheme('/dir/file'), 'data'));
+		self::assertFalse(@file_put_contents("$scheme://dir/file", 'data'));
 
 		$dir->setMode(0_200);
-		self::assertGreaterThan(0, @file_put_contents($fs->getPathWithScheme('/dir/file'), 'data'));
+		self::assertGreaterThan(0, @file_put_contents("$scheme://dir/file", 'data'));
 	}
 
 	public function testStreamOpenReportsErrorsOnPermissionDenied(): void
 	{
-		$fs = new FileSystem();
-		$dir = $fs->createDirectory('/dir');
-		$file = $fs->createFile('/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$dir = $container->createDir('/dir');
+		$file = $container->createFile('/file');
 		$dir->setMode(0_000);
 
 		$openedPath = null;
 
 		$wr = new StreamWrapper();
 
-		@$wr->stream_open($fs->getPathWithScheme('/dir/file'), 'w', STREAM_REPORT_ERRORS, $openedPath);
+		@$wr->stream_open("$scheme://dir/file", 'w', STREAM_REPORT_ERRORS, $openedPath);
 
 		$error = error_get_last();
 
@@ -1124,7 +1161,7 @@ final class WrapperTest extends TestCase
 		);
 
 		$file->setMode(0_000);
-		@$wr->stream_open($fs->getPathWithScheme('/file'), 'r', STREAM_REPORT_ERRORS, $openedPath);
+		@$wr->stream_open("$scheme://file", 'r', STREAM_REPORT_ERRORS, $openedPath);
 
 		$error = error_get_last();
 
@@ -1134,7 +1171,7 @@ final class WrapperTest extends TestCase
 		);
 
 		$file->setMode(0_000);
-		@$wr->stream_open($fs->getPathWithScheme('/file'), 'w', STREAM_REPORT_ERRORS, $openedPath);
+		@$wr->stream_open("$scheme://file", 'w', STREAM_REPORT_ERRORS, $openedPath);
 
 		$error = error_get_last();
 
@@ -1144,7 +1181,7 @@ final class WrapperTest extends TestCase
 		);
 
 		$file->setMode(0_000);
-		@$wr->stream_open($fs->getPathWithScheme('/file'), 'a', STREAM_REPORT_ERRORS, $openedPath);
+		@$wr->stream_open("$scheme://file", 'a', STREAM_REPORT_ERRORS, $openedPath);
 
 		$error = error_get_last();
 
@@ -1154,7 +1191,7 @@ final class WrapperTest extends TestCase
 		);
 
 		$file->setMode(0_000);
-		@$wr->stream_open($fs->getPathWithScheme('/file'), 'w+', STREAM_REPORT_ERRORS, $openedPath);
+		@$wr->stream_open("$scheme://file", 'w+', STREAM_REPORT_ERRORS, $openedPath);
 
 		$error = error_get_last();
 
@@ -1167,12 +1204,13 @@ final class WrapperTest extends TestCase
 
 	public function testPermissionsAreCheckedWhenCreatingDirectories(): void
 	{
-		$fs = new FileSystem();
-		$fs->createDirectory('/test', false, 0_000);
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createDir('/test', false, 0_000);
 
 		$wr = new StreamWrapper();
 
-		self::assertFalse(@$wr->mkdir($fs->getPathWithScheme('/test/dir'), 0_777, 0));
+		self::assertFalse(@$wr->mkdir("$scheme://test/dir", 0_777, 0));
 
 		$error = error_get_last();
 
@@ -1184,17 +1222,18 @@ final class WrapperTest extends TestCase
 
 	public function testPermissionsAreCheckedWhenRemovingFiles(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->createFile('/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = $container->createFile('/file');
 		$file->setMode(0_000);
 
 		$wr = new StreamWrapper();
-		self::assertTrue($wr->unlink($fs->getPathWithScheme('/file')), 'Allows removals with writable parent');
+		self::assertTrue($wr->unlink("$scheme://file"), 'Allows removals with writable parent');
 
-		$fs->getRoot()->setMode(0_500);
+		$container->getRootDirectory()->setMode(0_500);
 
 		self::assertFalse(
-			@$wr->unlink($fs->getPathWithScheme('/file')),
+			@$wr->unlink("$scheme://file"),
 			'Does not allow removals with non-writable parent',
 		);
 
@@ -1208,27 +1247,28 @@ final class WrapperTest extends TestCase
 
 	public function testRmDirNotAllowedWhenDirectoryNotWritable(): void
 	{
-		$fs = new FileSystem();
-		$dir = $fs->createDirectory('/dir');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$dir = $container->createDir('/dir');
 
 		$wr = new StreamWrapper();
 
 		$dir->setMode(0_000);
-		@rmdir($fs->getPathWithScheme('/dir'));
+		@rmdir("$scheme://dir");
 		self::assertFalse(
-			@$wr->rmdir($fs->getPathWithScheme('/dir'), STREAM_REPORT_ERRORS),
+			@$wr->rmdir("$scheme://dir", STREAM_REPORT_ERRORS),
 			'Directory not removed with no permissions',
 		);
 
 		$dir->setMode(0_100);
 		self::assertFalse(
-			@$wr->rmdir($fs->getPathWithScheme('/dir'), STREAM_REPORT_ERRORS),
+			@$wr->rmdir("$scheme://dir", STREAM_REPORT_ERRORS),
 			'Directory not removed with exec only',
 		);
 
 		$dir->setMode(0_200);
 		self::assertFalse(
-			@$wr->rmdir($fs->getPathWithScheme('/dir'), STREAM_REPORT_ERRORS),
+			@$wr->rmdir("$scheme://dir", STREAM_REPORT_ERRORS),
 			'Directory not removed with write',
 		);
 
@@ -1241,21 +1281,22 @@ final class WrapperTest extends TestCase
 
 		$dir->setMode(0_400);
 		self::assertTrue(
-			$wr->rmdir($fs->getPathWithScheme('/dir'), STREAM_REPORT_ERRORS),
+			$wr->rmdir("$scheme://dir", STREAM_REPORT_ERRORS),
 			'Directory removed with read permission, yes that is how it normally behaves ;)',
 		);
 	}
 
 	public function testChmodNotAllowedIfNotOwner(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->createFile('/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = $container->createFile('/file');
 		$file->setUser($this->uid + 1); //set to non-current
 
 		$wr = new StreamWrapper();
 
 		self::assertFalse(
-			@$wr->stream_metadata($fs->getPathWithScheme('/file'), STREAM_META_ACCESS, 0_000),
+			@$wr->stream_metadata("$scheme://file", STREAM_META_ACCESS, 0_000),
 			'Not allowed to chmod if not owner',
 		);
 
@@ -1269,8 +1310,9 @@ final class WrapperTest extends TestCase
 
 	public function testChownAndChgrpAllowedIfOwner(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->createFile($fileName = uniqid('/', true));
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = $container->createFile($fileName = uniqid('/', true));
 		$file->setUser($this->uid); //set to current
 
 		$uid = $this->uid + 1;
@@ -1278,28 +1320,28 @@ final class WrapperTest extends TestCase
 		$wr = new StreamWrapper();
 
 		self::assertTrue(
-			$wr->stream_metadata($fs->getPathWithScheme($fileName), STREAM_META_OWNER, $uid),
+			$wr->stream_metadata("$scheme://$fileName", STREAM_META_OWNER, $uid),
 		);
 
-		$file = $fs->createFile($fileName = uniqid('/', true));
+		$file = $container->createFile($fileName = uniqid('/', true));
 		$file->setUser($this->uid); //set to current
 
 		self::assertTrue(
-			$wr->stream_metadata($fs->getPathWithScheme($fileName), STREAM_META_OWNER_NAME, 'user'),
+			$wr->stream_metadata("$scheme://$fileName", STREAM_META_OWNER_NAME, 'user'),
 		);
 
-		$file = $fs->createFile($fileName = uniqid('/', true));
+		$file = $container->createFile($fileName = uniqid('/', true));
 		$file->setUser($this->uid); //set to current
 
 		self::assertTrue(
-			$wr->stream_metadata($fs->getPathWithScheme($fileName), STREAM_META_GROUP, $uid),
+			$wr->stream_metadata("$scheme://$fileName", STREAM_META_GROUP, $uid),
 		);
 
-		$file = $fs->createFile($fileName = uniqid('/', true));
+		$file = $container->createFile($fileName = uniqid('/', true));
 		$file->setUser($this->uid); //set to current
 
 		self::assertTrue(
-			$wr->stream_metadata($fs->getPathWithScheme($fileName), STREAM_META_GROUP_NAME, 'userGroup'),
+			$wr->stream_metadata("$scheme://$fileName", STREAM_META_GROUP_NAME, 'userGroup'),
 		);
 
 	}
@@ -1313,14 +1355,15 @@ final class WrapperTest extends TestCase
 			);
 		}
 
-		$fs = new FileSystem();
-		$file = $fs->createFile('/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = $container->createFile('/file');
 		$file->setUser($this->uid + 1); //set to non-current
 
 		$wr = new StreamWrapper();
 
 		self::assertFalse(
-			@$wr->stream_metadata($fs->getPathWithScheme('/file'), STREAM_META_OWNER, 1),
+			@$wr->stream_metadata("$scheme://file", STREAM_META_OWNER, 1),
 			'Not allowed to chown if not root',
 		);
 
@@ -1332,7 +1375,7 @@ final class WrapperTest extends TestCase
 		);
 
 		self::assertFalse(
-			@$wr->stream_metadata($fs->getPathWithScheme('/file'), STREAM_META_OWNER_NAME, 'user'),
+			@$wr->stream_metadata("$scheme://file", STREAM_META_OWNER_NAME, 'user'),
 			'Not allowed to chown by name if not root',
 		);
 
@@ -1344,7 +1387,7 @@ final class WrapperTest extends TestCase
 		);
 
 		self::assertFalse(
-			@$wr->stream_metadata($fs->getPathWithScheme('/file'), STREAM_META_GROUP, 1),
+			@$wr->stream_metadata("$scheme://file", STREAM_META_GROUP, 1),
 			'Not allowed to chgrp if not root',
 		);
 
@@ -1356,7 +1399,7 @@ final class WrapperTest extends TestCase
 		);
 
 		self::assertFalse(
-			@$wr->stream_metadata($fs->getPathWithScheme('/file'), STREAM_META_GROUP_NAME, 'group'),
+			@$wr->stream_metadata("$scheme://file", STREAM_META_GROUP_NAME, 'group'),
 			'Not allowed to chgrp by name if not root',
 		);
 
@@ -1370,15 +1413,16 @@ final class WrapperTest extends TestCase
 
 	public function testTouchNotAllowedIfNotOwnerOrNotWritable(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->createFile('/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = $container->createFile('/file');
 		$file->setUser($this->uid + 1); //set to non-current
 		$file->setMode(0_000);
 
 		$wr = new StreamWrapper();
 
 		self::assertFalse(
-			@$wr->stream_metadata($fs->getPathWithScheme('/file'), STREAM_META_TOUCH, 0),
+			@$wr->stream_metadata("$scheme://file", STREAM_META_TOUCH, 0),
 			'Not allowed to touch if not owner and no permission',
 		);
 
@@ -1392,7 +1436,7 @@ final class WrapperTest extends TestCase
 		$file->setUser($this->uid);
 
 		self::assertTrue(
-			$wr->stream_metadata($fs->getPathWithScheme('/file'), STREAM_META_TOUCH, 0),
+			$wr->stream_metadata("$scheme://file", STREAM_META_TOUCH, 0),
 			'Allowed to touch if owner and no permission',
 		);
 
@@ -1400,7 +1444,7 @@ final class WrapperTest extends TestCase
 		$file->setMode(0_002);
 
 		self::assertTrue(
-			$wr->stream_metadata($fs->getPathWithScheme('/file'), STREAM_META_TOUCH, 0),
+			$wr->stream_metadata("$scheme://file", STREAM_META_TOUCH, 0),
 			'Allowed to touch if not owner but with write permission',
 		);
 	}
@@ -1414,18 +1458,19 @@ final class WrapperTest extends TestCase
 			);
 		}
 
-		$fs = new FileSystem();
-		$factory = $fs->getContainer()->getFactory();
-		$directory = $fs->createDirectory('/dir');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$factory = $container->getFactory();
+		$directory = $container->createDir('/dir');
 		$link = $factory->createLink('link', $directory);
 		$directory->addLink($link);
 
-		$fs->getContainer()->setPermissionHelper(
+		$container->setPermissionHelper(
 			new PermissionHelper(PermissionHelper::ROOT_ID, PermissionHelper::ROOT_ID),
 		);
 
-		lchown($fs->getPathWithScheme('/dir/link'), 'root');
-		self::assertEquals('root', posix_getpwuid(fileowner($fs->getPathWithScheme('/dir/link')))['name']);
+		lchown("$scheme://dir/link", 'root');
+		self::assertEquals('root', posix_getpwuid(fileowner("$scheme://dir/link"))['name']);
 
 	}
 
@@ -1438,13 +1483,14 @@ final class WrapperTest extends TestCase
 			);
 		}
 
-		$fs = new FileSystem();
-		$factory = $fs->getContainer()->getFactory();
-		$directory = $fs->createDirectory('/dir');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$factory = $container->getFactory();
+		$directory = $container->createDir('/dir');
 		$link = $factory->createLink('link', $directory);
 		$directory->addLink($link);
 
-		$fs->getContainer()->setPermissionHelper(
+		$container->setPermissionHelper(
 			new PermissionHelper(PermissionHelper::ROOT_ID, PermissionHelper::ROOT_ID),
 		);
 
@@ -1452,63 +1498,68 @@ final class WrapperTest extends TestCase
 		//this is needed to find string name of group root belongs to
 		$group = posix_getgrgid(posix_getpwuid(0)['gid'])['name'];
 
-		chgrp($fs->getPathWithScheme('/dir/link'), $group);
+		chgrp("$scheme://dir/link", $group);
 
-		self::assertEquals($group, posix_getgrgid(filegroup($fs->getPathWithScheme('/dir/link')))['name']);
+		self::assertEquals($group, posix_getgrgid(filegroup("$scheme://dir/link"))['name']);
 	}
 
 	public function testFileCopy(): void
 	{
-		$fs = new FileSystem();
-		$fs->createFile('/file', 'data');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createFile('/file', 'data');
 
-		copy($fs->getPathWithScheme('/file'), $fs->getPathWithScheme('/file2'));
+		copy("$scheme://file", "$scheme://file2");
 
-		self::assertFileExists($fs->getPathWithScheme('/file2'));
+		self::assertFileExists("$scheme://file2");
 
-		self::assertEquals('data', $fs->getContainer()->getFileAt('/file2')->getData());
+		self::assertEquals('data', $container->getFileAt('/file2')->getData());
 
 	}
 
 	public function testLinkCopyCreatesHardCopyOfFile(): void
 	{
-		$fs = new FileSystem();
-		$fs->createFile('/file', 'data');
-		$fs->createLink('/link', '/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createFile('/file', 'data');
+		$container->createLink('/link', '/file');
 
-		copy($fs->getPathWithScheme('/link'), $fs->getPathWithScheme('/file2'));
+		copy("$scheme://link", "$scheme://file2");
 
-		self::assertFileExists($fs->getPathWithScheme('/file2'));
-		self::assertEquals('data', $fs->getContainer()->getFileAt('/file2')->getData());
+		self::assertFileExists("$scheme://file2");
+		self::assertEquals('data', $container->getFileAt('/file2')->getData());
 
 	}
 
 	public function testLinkReading(): void
 	{
-		$fs = new FileSystem();
-		$fs->createFile('/file', 'data');
-		$fs->createLink('/link', '/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createFile('/file', 'data');
+		$container->createLink('/link', '/file');
 
-		self::assertEquals('data', file_get_contents($fs->getPathWithScheme('/link')));
+		self::assertEquals('data', file_get_contents("$scheme://link"));
 	}
 
 	public function testLinkWriting(): void
 	{
-		$fs = new FileSystem();
-		$fs->createFile('/file', 'ubots!');
-		$fs->createLink('/link', '/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createFile('/file', 'ubots!');
+		$container->createLink('/link', '/file');
 
-		file_put_contents($fs->getPathWithScheme('/link'), 'data');
+		file_put_contents("$scheme://link", 'data');
 
-		self::assertEquals('data', file_get_contents($fs->getPathWithScheme('/link')));
+		self::assertEquals('data', file_get_contents("$scheme://link"));
 
 	}
 
 	public function testChmodViaLink(): void
 	{
-		$fs = new FileSystem();
-		$name = $fs->getPathWithScheme($fs->createFile('/file')->getPath());
-		$link = $fs->getPathWithScheme($fs->createLink('/link', '/file')->getPath());
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$name = "$scheme://{$container->createFile('/file')->getPath()}";
+		$link = "$scheme://{$container->createLink('/link', '/file')->getPath()}";
 
 		chmod($link, 0_000);
 
@@ -1526,22 +1577,24 @@ final class WrapperTest extends TestCase
 
 	public function testIsExecutableReturnsCorrectly(): void
 	{
-		$fs = new FileSystem();
-		$fs->createFile('/file');
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$container->createFile('/file');
 
-		chmod($fs->getPathWithScheme('/file'), 0_000);
+		chmod("$scheme://file", 0_000);
 
-		self::assertFalse(is_executable($fs->getPathWithScheme('/file')));
+		self::assertFalse(is_executable("$scheme://file"));
 
-		chmod($fs->getPathWithScheme('/file'), 0_777);
+		chmod("$scheme://file", 0_777);
 
-		self::assertTrue(is_executable($fs->getPathWithScheme('/file')));
+		self::assertTrue(is_executable("$scheme://file"));
 	}
 
 	public function testExclusiveLock(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getPathWithScheme($fs->createFile('/file')->getPath());
+		$scheme = VFS::register();
+		$file = "$scheme://file";
+		touch($file);
 
 		$fh1 = fopen($file, 'c');
 		$fh2 = fopen($file, 'c');
@@ -1552,8 +1605,9 @@ final class WrapperTest extends TestCase
 
 	public function testSharedLock(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getPathWithScheme($fs->createFile('/file')->getPath());
+		$scheme = VFS::register();
+		$file = "$scheme://file";
+		touch($file);
 
 		$fh1 = fopen($file, 'c');
 		$fh2 = fopen($file, 'c');
@@ -1566,8 +1620,9 @@ final class WrapperTest extends TestCase
 
 	public function testUnlockSharedLock(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getPathWithScheme($fs->createFile('/file')->getPath());
+		$scheme = VFS::register();
+		$file = "$scheme://file";
+		touch($file);
 
 		$fh1 = fopen($file, 'c');
 		$fh2 = fopen($file, 'c');
@@ -1579,8 +1634,9 @@ final class WrapperTest extends TestCase
 
 	public function testUnlockExclusiveLock(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getPathWithScheme($fs->createFile('/file')->getPath());
+		$scheme = VFS::register();
+		$file = "$scheme://file";
+		touch($file);
 
 		$fh1 = fopen($file, 'c');
 		$fh2 = fopen($file, 'c');
@@ -1592,8 +1648,9 @@ final class WrapperTest extends TestCase
 
 	public function testDowngradeExclusiveLock(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getPathWithScheme($fs->createFile('/file')->getPath());
+		$scheme = VFS::register();
+		$file = "$scheme://file";
+		touch($file);
 
 		$fh1 = fopen($file, 'c');
 		$fh2 = fopen($file, 'c');
@@ -1605,8 +1662,9 @@ final class WrapperTest extends TestCase
 
 	public function testUpgradeSharedLock(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getPathWithScheme($fs->createFile('/file')->getPath());
+		$scheme = VFS::register();
+		$file = "$scheme://file";
+		touch($file);
 
 		$fh1 = fopen($file, 'c');
 		$fh2 = fopen($file, 'c');
@@ -1618,8 +1676,9 @@ final class WrapperTest extends TestCase
 
 	public function testUpgradeSharedLockImpossible(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getPathWithScheme($fs->createFile('/file')->getPath());
+		$scheme = VFS::register();
+		$file = "$scheme://file";
+		touch($file);
 
 		$fh1 = fopen($file, 'c');
 		$fh2 = fopen($file, 'c');
@@ -1631,17 +1690,18 @@ final class WrapperTest extends TestCase
 
 	public function testFileSize(): void
 	{
-		$fs = new FileSystem();
-		$file = $fs->getPathWithScheme($fs->createFile('/file', '12345')->getPath());
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
+		$file = "$scheme://{$container->createFile('/file', '12345')->getPath()}";
 
 		self::assertEquals(5, filesize($file));
 	}
 
 	public function testRmdirAfterUrlStatCall(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
 
-		$path = $fs->getPathWithScheme('dir');
+		$path = "$scheme://dir";
 
 		mkdir($path);
 
@@ -1654,9 +1714,9 @@ final class WrapperTest extends TestCase
 
 	public function testUnlinkAfterUrlStatCall(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
 
-		$path = $fs->getPathWithScheme('file');
+		$path = "$scheme://file";
 
 		touch($path);
 
@@ -1665,28 +1725,31 @@ final class WrapperTest extends TestCase
 		unlink($path);
 
 		self::assertFileDoesNotExist($path);
+		VFS::unregister($scheme);
 	}
 
 	public function testFinfoSupport(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
 
-		$fs->createFile(
+		$container->createFile(
 			'/file.gif',
 			base64_decode('R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==', true),
 		);
 
 		$finfo = new finfo(FILEINFO_MIME_TYPE);
 
-		self::assertEquals('image/gif', $finfo->file($fs->getPathWithScheme('/file.gif')));
+		self::assertEquals('image/gif', $finfo->file("$scheme://file.gif"));
 
 	}
 
 	public function testRequire(): void
 	{
-		$fs = new FileSystem();
+		$scheme = VFS::register();
+		$container = StreamWrapper::getContainer($scheme);
 		// phpcs:disable SlevomatCodingStandard.Functions.RequireSingleLineCall
-		$fs->createFile(
+		$container->createFile(
 			'/file.php',
 			<<<'PHP'
 <?php return 1;
@@ -1694,7 +1757,7 @@ PHP,
 		);
 		// phpcs:enable
 
-		self::assertSame(1, require $fs->getPathWithScheme('/file.php'));
+		self::assertSame(1, require "$scheme://file.php");
 	}
 
 }

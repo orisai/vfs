@@ -33,8 +33,6 @@ use function preg_split;
 use function sprintf;
 use function str_replace;
 use function str_split;
-use function stream_context_get_default;
-use function stream_context_get_options;
 use function time;
 use function trigger_error;
 use const E_USER_WARNING;
@@ -63,6 +61,9 @@ final class StreamWrapper
 
 	private ?DirectoryHandler $currentDir = null;
 
+	/** @var array<string, Container> */
+	public static array $containers = [];
+
 	/**
 	 * Returns path stripped of url scheme (http://, ftp://, test:// etc.)
 	 */
@@ -76,15 +77,14 @@ final class StreamWrapper
 		return '/' . ltrim($scheme, '/');
 	}
 
-	public function getContainerFromContext(string $path): Container
+	public static function getContainer(string $path): Container
 	{
 		$scheme = preg_split('#://#', $path);
 		assert($scheme !== false);
 		$scheme = current($scheme);
 		assert($scheme !== false);
-		$options = stream_context_get_options(stream_context_get_default());
 
-		return $options[$scheme]['Container'];
+		return self::$containers[$scheme];
 	}
 
 	/**
@@ -120,7 +120,7 @@ final class StreamWrapper
 	 */
 	public function stream_open(string $path, string $mode, int $options, ?string &$opened_path): bool
 	{
-		$container = $this->getContainerFromContext($path);
+		$container = self::getContainer($path);
 		$path = $this->stripScheme($path);
 
 		$modes = str_split(str_replace('b', '', $mode));
@@ -277,7 +277,7 @@ final class StreamWrapper
 	 */
 	public function stream_metadata(string $path, int $option, $value): bool
 	{
-		$container = $this->getContainerFromContext($path);
+		$container = self::getContainer($path);
 		$strippedPath = $this->stripScheme($path);
 
 		if ($option === STREAM_META_TOUCH) {
@@ -529,7 +529,7 @@ final class StreamWrapper
 	public function url_stat(string $path, int $flags)
 	{
 		try {
-			$file = $this->getContainerFromContext($path)->getNodeAt($this->stripScheme($path));
+			$file = self::getContainer($path)->getNodeAt($this->stripScheme($path));
 
 			return array_merge($this->getStatDefault(), [
 				'mode' => $file->getMode(),
@@ -576,7 +576,7 @@ final class StreamWrapper
 	 */
 	public function rename(string $path_from, string $path_to): bool
 	{
-		$container = $this->getContainerFromContext($path_to);
+		$container = self::getContainer($path_to);
 		$path_from = $this->stripScheme($path_from);
 		$path_to = $this->stripScheme($path_to);
 
@@ -606,7 +606,7 @@ final class StreamWrapper
 	 */
 	public function unlink(string $path): bool
 	{
-		$container = $this->getContainerFromContext($path);
+		$container = self::getContainer($path);
 		$permissionHelper = $container->getPermissionHelper();
 
 		try {
@@ -649,7 +649,7 @@ final class StreamWrapper
 	 */
 	public function mkdir(string $path, int $mode, int $options): bool
 	{
-		$container = $this->getContainerFromContext($path);
+		$container = self::getContainer($path);
 		$path = $this->stripScheme($path);
 		$recursive = (bool) ($options & STREAM_MKDIR_RECURSIVE);
 		$permissionHelper = $container->getPermissionHelper();
@@ -693,7 +693,7 @@ final class StreamWrapper
 	 */
 	public function dir_opendir(string $path, int $options): bool
 	{
-		$container = $this->getContainerFromContext($path);
+		$container = self::getContainer($path);
 
 		$path = $this->stripScheme($path);
 
@@ -776,7 +776,7 @@ final class StreamWrapper
 	 */
 	public function rmdir(string $path, int $options): bool
 	{
-		$container = $this->getContainerFromContext($path);
+		$container = self::getContainer($path);
 		$path = $this->stripScheme($path);
 
 		try {

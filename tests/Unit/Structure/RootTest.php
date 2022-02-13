@@ -43,30 +43,8 @@ final class RootTest extends TestCase
 	{
 		$root = new RootDirectory(time(), 0, 0);
 
-		$root->setScheme('scheme://');
 		self::assertEquals('/', $root, 'No scheme when one is set');
 
-	}
-
-	public function testURLIsReturned(): void
-	{
-		$root = new RootDirectory(time(), 0, 0);
-
-		$root->setScheme('scheme://');
-		self::assertEquals('scheme://', $root->getUrl());
-
-		$root->setScheme('scheme');
-		self::assertEquals('scheme://', $root->getUrl(), 'Scheme reformatted');
-
-	}
-
-	public function testURLThrowsWhenNoScheme(): void
-	{
-		$root = new RootDirectory(time(), 0, 0);
-
-		$this->expectException('RuntimeException');
-
-		$root->getUrl();
 	}
 
 	public function testRootPathReturnsWithoutScheme(): void
