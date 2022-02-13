@@ -88,12 +88,10 @@ final class WrapperTest extends TestCase
 
 	public function testSchemeStripping(): void
 	{
-		$c = new StreamWrapper();
-
-		self::assertEquals('/1/2/3/4', $c->stripScheme('test://1/2/3/4'));
-		self::assertEquals('/', $c->stripScheme('test://'));
-		self::assertEquals('/', $c->stripScheme('test:///'));
-		self::assertEquals('/dir', $c->stripScheme('test:///dir'));
+		self::assertEquals('/1/2/3/4', StreamWrapper::stripScheme('test://1/2/3/4'));
+		self::assertEquals('/', StreamWrapper::stripScheme('test://'));
+		self::assertEquals('/', StreamWrapper::stripScheme('test:///'));
+		self::assertEquals('/dir', StreamWrapper::stripScheme('test:///dir'));
 
 	}
 

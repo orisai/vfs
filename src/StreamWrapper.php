@@ -67,7 +67,7 @@ final class StreamWrapper
 	/**
 	 * Returns path stripped of url scheme (http://, ftp://, test:// etc.)
 	 */
-	public function stripScheme(string $path): string
+	public static function stripScheme(string $path): string
 	{
 		$scheme = preg_split('#://#', $path, 2);
 		assert($scheme !== false);
@@ -121,7 +121,7 @@ final class StreamWrapper
 	public function stream_open(string $path, string $mode, int $options, ?string &$opened_path): bool
 	{
 		$container = self::getContainer($path);
-		$path = $this->stripScheme($path);
+		$path = self::stripScheme($path);
 
 		$modes = str_split(str_replace('b', '', $mode));
 
@@ -278,7 +278,7 @@ final class StreamWrapper
 	public function stream_metadata(string $path, int $option, $value): bool
 	{
 		$container = self::getContainer($path);
-		$strippedPath = $this->stripScheme($path);
+		$strippedPath = self::stripScheme($path);
 
 		if ($option === STREAM_META_TOUCH) {
 			assert(is_array($value) || is_int($value));
@@ -529,7 +529,7 @@ final class StreamWrapper
 	public function url_stat(string $path, int $flags)
 	{
 		try {
-			$file = self::getContainer($path)->getNodeAt($this->stripScheme($path));
+			$file = self::getContainer($path)->getNodeAt(self::stripScheme($path));
 
 			return array_merge($this->getStatDefault(), [
 				'mode' => $file->getMode(),
@@ -577,8 +577,8 @@ final class StreamWrapper
 	public function rename(string $path_from, string $path_to): bool
 	{
 		$container = self::getContainer($path_to);
-		$path_from = $this->stripScheme($path_from);
-		$path_to = $this->stripScheme($path_to);
+		$path_from = self::stripScheme($path_from);
+		$path_to = self::stripScheme($path_to);
 
 		try {
 			$container->move($path_from, $path_to);
@@ -611,7 +611,7 @@ final class StreamWrapper
 
 		try {
 
-			$path = $this->stripScheme($path);
+			$path = self::stripScheme($path);
 
 			$parent = $container->getNodeAt(dirname($path));
 
@@ -624,7 +624,7 @@ final class StreamWrapper
 				return false;
 			}
 
-			$container->remove($path = $this->stripScheme($path));
+			$container->remove($path = self::stripScheme($path));
 		} catch (PathNotFound $e) {
 			trigger_error(
 				sprintf('rm: %s: No such file or directory', $path),
@@ -650,7 +650,7 @@ final class StreamWrapper
 	public function mkdir(string $path, int $mode, int $options): bool
 	{
 		$container = self::getContainer($path);
-		$path = $this->stripScheme($path);
+		$path = self::stripScheme($path);
 		$recursive = (bool) ($options & STREAM_MKDIR_RECURSIVE);
 		$permissionHelper = $container->getPermissionHelper();
 
@@ -695,7 +695,7 @@ final class StreamWrapper
 	{
 		$container = self::getContainer($path);
 
-		$path = $this->stripScheme($path);
+		$path = self::stripScheme($path);
 
 		if (!$container->hasNodeAt($path)) {
 			trigger_error(sprintf('opendir(%s): failed to open dir: No such file or directory', $path), E_USER_WARNING);
@@ -777,7 +777,7 @@ final class StreamWrapper
 	public function rmdir(string $path, int $options): bool
 	{
 		$container = self::getContainer($path);
-		$path = $this->stripScheme($path);
+		$path = self::stripScheme($path);
 
 		try {
 			$directory = $container->getNodeAt($path);
