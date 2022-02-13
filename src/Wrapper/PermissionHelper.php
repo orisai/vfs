@@ -22,8 +22,6 @@ final class PermissionHelper
 
 	public const ROOT_ID = 0;
 
-	private Node $node;
-
 	private int $uid;
 
 	private int $gid;
@@ -34,59 +32,54 @@ final class PermissionHelper
 		$this->gid = $gid ?? (function_exists('posix_getgid') ? posix_getgid() : self::ROOT_ID);
 	}
 
-	public function setNode(Node $node): void
+	public function userIsOwner(Node $node): bool
 	{
-		$this->node = $node;
+		return $this->uid === $node->getUser();
 	}
 
-	public function userIsOwner(): bool
+	public function userCanRead(Node $node): bool
 	{
-		return $this->uid === $this->node->getUser();
+		return $this->userIsOwner($node) && ($node->getMode() & self::MODE_USER_READ) !== 0;
 	}
 
-	public function userCanRead(): bool
+	public function userCanWrite(Node $node): bool
 	{
-		return $this->userIsOwner() && ($this->node->getMode() & self::MODE_USER_READ) !== 0;
+		return $this->userIsOwner($node) && ($node->getMode() & self::MODE_USER_WRITE) !== 0;
 	}
 
-	public function userCanWrite(): bool
+	public function groupIsOwner(Node $node): bool
 	{
-		return $this->userIsOwner() && ($this->node->getMode() & self::MODE_USER_WRITE) !== 0;
+		return $this->gid === $node->getGroup();
 	}
 
-	public function groupIsOwner(): bool
+	public function groupCanRead(Node $node): bool
 	{
-		return $this->gid === $this->node->getGroup();
+		return $this->groupIsOwner($node) && ($node->getMode() & self::MODE_GROUP_READ) !== 0;
 	}
 
-	public function groupCanRead(): bool
+	public function groupCanWrite(Node $node): bool
 	{
-		return $this->groupIsOwner() && ($this->node->getMode() & self::MODE_GROUP_READ) !== 0;
+		return $this->groupIsOwner($node) && ($node->getMode() & self::MODE_GROUP_WRITE) !== 0;
 	}
 
-	public function groupCanWrite(): bool
+	public function worldCanRead(Node $node): bool
 	{
-		return $this->groupIsOwner() && ($this->node->getMode() & self::MODE_GROUP_WRITE) !== 0;
+		return ($node->getMode() & self::MODE_WORLD_READ) !== 0;
 	}
 
-	public function worldCanRead(): bool
+	public function worldCanWrite(Node $node): bool
 	{
-		return ($this->node->getMode() & self::MODE_WORLD_READ) !== 0;
+		return ($node->getMode() & self::MODE_WORLD_WRITE) !== 0;
 	}
 
-	public function worldCanWrite(): bool
+	public function isReadable(Node $node): bool
 	{
-		return ($this->node->getMode() & self::MODE_WORLD_WRITE) !== 0;
+		return $this->userCanRead($node) || $this->groupCanRead($node) || $this->worldCanRead($node);
 	}
 
-	public function isReadable(): bool
+	public function isWritable(Node $node): bool
 	{
-		return $this->userCanRead() || $this->groupCanRead() || $this->worldCanRead();
-	}
-
-	public function isWritable(): bool
-	{
-		return $this->userCanWrite() || $this->groupCanWrite() || $this->worldCanWrite();
+		return $this->userCanWrite($node) || $this->groupCanWrite($node) || $this->worldCanWrite($node);
 	}
 
 	public function userIsRoot(): bool

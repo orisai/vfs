@@ -235,10 +235,8 @@ final class Container
 		clearstatcache(true, $path);
 	}
 
-	public function getPermissionHelper(Node $node): PermissionHelper
+	public function getPermissionHelper(): PermissionHelper
 	{
-		$this->permissionHelper->setNode($node);
-
 		return $this->permissionHelper;
 	}
 
