@@ -1310,9 +1310,16 @@ final class WrapperTest extends TestCase
 
 	public function testChownAndChgrpNotAllowedIfNotRoot(): void
 	{
+		if ($this->uid === 0) {
+			self::markTestSkipped(
+				'No point testing if user is already root. ' .
+				'Php unit shouldn\'t be run as root user. (Unless you are a windows user!)',
+			);
+		}
+
 		$fs = new FileSystem();
 		$file = $fs->createFile('/file');
-		$file->setUser($this->uid + 1); //set to non current
+		$file->setUser($this->uid + 1); //set to non-current
 
 		$wr = new StreamWrapper();
 
@@ -1376,7 +1383,7 @@ final class WrapperTest extends TestCase
 	{
 		$fs = new FileSystem();
 		$file = $fs->createFile('/file');
-		$file->setUser($this->uid + 1); //set to non current
+		$file->setUser($this->uid + 1); //set to non-current
 		$file->setMode(0_000);
 
 		$wr = new StreamWrapper();
@@ -1400,7 +1407,7 @@ final class WrapperTest extends TestCase
 			'Allowed to touch if owner and no permission',
 		);
 
-		$file->setUser($this->uid + 1); //set to non current
+		$file->setUser($this->uid + 1); //set to non-current
 		$file->setMode(0_002);
 
 		self::assertTrue(

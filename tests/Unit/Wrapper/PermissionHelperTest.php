@@ -5,30 +5,16 @@ namespace Tests\Orisai\VFS\Unit\Wrapper;
 use Orisai\VFS\Structure\File;
 use Orisai\VFS\Wrapper\PermissionHelper;
 use PHPUnit\Framework\TestCase;
-use function function_exists;
-use function posix_getgid;
-use function posix_getuid;
 
 final class PermissionHelperTest extends TestCase
 {
 
-	private int $uid;
-
-	private int $gid;
-
-	public function setUp(): void
-	{
-		parent::setUp();
-		$this->uid = function_exists('posix_getuid') ? posix_getuid() : PermissionHelper::ROOT_ID;
-		$this->gid = function_exists('posix_getgid') ? posix_getgid() : PermissionHelper::ROOT_ID;
-	}
-
 	public function testUserPermissionsAreCalculatedCorrectly(): void
 	{
 		$file = new File('file');
-		$file->setUser($this->uid);
+		$file->setUser(1);
 
-		$ph = new PermissionHelper();
+		$ph = new PermissionHelper(1, 1);
 		$ph->setNode($file);
 
 		$file->setMode(0_000);
@@ -55,7 +41,7 @@ final class PermissionHelperTest extends TestCase
 		self::assertTrue($ph->userCanRead(), 'User can read with 0600');
 		self::assertTrue($ph->userCanWrite(), 'User can read with 0600');
 
-		$file->setUser(1);
+		$file->setUser(PermissionHelper::ROOT_ID);
 		$file->setMode(0_666);
 
 		self::assertFalse($ph->userCanRead(), 'User can\'t read without ownership');
@@ -65,9 +51,9 @@ final class PermissionHelperTest extends TestCase
 	public function testGroupPermissionsAreCalculatedCorrectly(): void
 	{
 		$file = new File('file');
-		$file->setGroup($this->gid);
+		$file->setGroup(1);
 
-		$ph = new PermissionHelper();
+		$ph = new PermissionHelper(1, 1);
 		$ph->setNode($file);
 
 		$file->setMode(0_000);
@@ -105,7 +91,7 @@ final class PermissionHelperTest extends TestCase
 	{
 		$file = new File('file');
 
-		$ph = new PermissionHelper();
+		$ph = new PermissionHelper(1, 1);
 		$ph->setNode($file);
 
 		$file->setMode(0_000);
@@ -138,7 +124,7 @@ final class PermissionHelperTest extends TestCase
 	{
 		$file = new File('file');
 
-		$ph = new PermissionHelper();
+		$ph = new PermissionHelper(1, 1);
 		$ph->setNode($file);
 
 		$file->setMode(0_000);
@@ -162,43 +148,43 @@ final class PermissionHelperTest extends TestCase
 		self::assertTrue($ph->isReadable(), 'File is readable root:root 0004');
 
 		$file->setMode(0_000);
-		$file->setUser($this->uid);
+		$file->setUser(1);
 		$file->setGroup(PermissionHelper::ROOT_ID);
 		self::assertFalse($ph->isReadable(), 'File is not readable user:root 0000');
 
 		$file->setMode(0_400);
-		$file->setUser($this->uid);
+		$file->setUser(1);
 		$file->setGroup(PermissionHelper::ROOT_ID);
 		self::assertTrue($ph->isReadable(), 'File is readable user:root 0400');
 
 		$file->setMode(0_040);
-		$file->setUser($this->uid);
+		$file->setUser(1);
 		$file->setGroup(PermissionHelper::ROOT_ID);
 		self::assertFalse($ph->isReadable(), 'File is not readable user:root 0040');
 
 		$file->setMode(0_004);
-		$file->setUser($this->uid);
+		$file->setUser(1);
 		$file->setGroup(PermissionHelper::ROOT_ID);
 		self::assertTrue($ph->isReadable(), 'File is readable user:root 0004');
 
 		$file->setMode(0_000);
 		$file->setUser(PermissionHelper::ROOT_ID);
-		$file->setGroup($this->gid);
+		$file->setGroup(1);
 		self::assertFalse($ph->isReadable(), 'File is not readable root:user 0000');
 
 		$file->setMode(0_040);
 		$file->setUser(PermissionHelper::ROOT_ID);
-		$file->setGroup($this->gid);
+		$file->setGroup(1);
 		self::assertTrue($ph->isReadable(), 'File is readable root:user 0040');
 
 		$file->setMode(0_400);
 		$file->setUser(PermissionHelper::ROOT_ID);
-		$file->setGroup($this->gid);
+		$file->setGroup(1);
 		self::assertFalse($ph->isReadable(), 'File is not readable root:user 0400');
 
 		$file->setMode(0_004);
 		$file->setUser(PermissionHelper::ROOT_ID);
-		$file->setGroup($this->gid);
+		$file->setGroup(1);
 		self::assertTrue($ph->isReadable(), 'File is readable root:user 0004');
 	}
 
