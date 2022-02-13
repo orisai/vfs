@@ -14,7 +14,7 @@ final class NodeTest extends TestCase
 
 	public function testChmod(): void
 	{
-		$file = new File('file', time());
+		$file = new File('file', time(), 0, 0);
 
 		self::assertEquals(Node::DEFAULT_MODE | File::getStatType(), $file->getMode());
 
@@ -28,8 +28,8 @@ final class NodeTest extends TestCase
 
 	public function testToStringReturnsPath(): void
 	{
-		$dir = new Directory('dir', time());
-		$dir->addFile($file = new File('file', time()));
+		$dir = new Directory('dir', time(), 0, 0);
+		$dir->addFile($file = new File('file', time(), 0, 0));
 
 		self::assertEquals($file->getPath(), $file, '__toString() invoked and returned path');
 
@@ -37,7 +37,7 @@ final class NodeTest extends TestCase
 
 	public function testSizeIsReturned(): void
 	{
-		$file = new File('file', time());
+		$file = new File('file', time(), 0, 0);
 		$file->setData('1234567890');
 
 		self::assertEquals(10, $file->getSize());
@@ -45,12 +45,12 @@ final class NodeTest extends TestCase
 
 	public function testURLConstruction(): void
 	{
-		$root = new RootDirectory(time());
+		$root = new RootDirectory(time(), 0, 0);
 		$root->setScheme('s://');
 
-		$root->addDirectory($dir = new Directory('dir', time()));
-		$dir->addDirectory($dir = new Directory('dir', time()));
-		$dir->addFile($file = new File('file', time()));
+		$root->addDirectory($dir = new Directory('dir', time(), 0, 0));
+		$dir->addDirectory($dir = new Directory('dir', time(), 0, 0));
+		$dir->addFile($file = new File('file', time(), 0, 0));
 
 		self::assertEquals('s://dir/dir/file', $file->getUrl());
 	}

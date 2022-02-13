@@ -12,7 +12,7 @@ final class PermissionHelperTest extends TestCase
 
 	public function testUserPermissionsAreCalculatedCorrectly(): void
 	{
-		$file = new File('file', time());
+		$file = new File('file', time(), 0, 0);
 		$file->setUser(1);
 
 		$ph = new PermissionHelper(1, 1);
@@ -50,7 +50,7 @@ final class PermissionHelperTest extends TestCase
 
 	public function testGroupPermissionsAreCalculatedCorrectly(): void
 	{
-		$file = new File('file', time());
+		$file = new File('file', time(), 0, 0);
 		$file->setGroup(1);
 
 		$ph = new PermissionHelper(1, 1);
@@ -88,7 +88,7 @@ final class PermissionHelperTest extends TestCase
 
 	public function testWorldPermissionsAreCalculatedCorrectly(): void
 	{
-		$file = new File('file', time());
+		$file = new File('file', time(), 0, 0);
 
 		$ph = new PermissionHelper(1, 1);
 
@@ -120,7 +120,7 @@ final class PermissionHelperTest extends TestCase
 
 	public function testIsReadable(): void
 	{
-		$file = new File('file', time());
+		$file = new File('file', time(), 0, 0);
 
 		$ph = new PermissionHelper(1, 1);
 

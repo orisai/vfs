@@ -14,9 +14,9 @@ final class Link extends Node
 	/**
 	 * @param Directory|File|Link $destination
 	 */
-	public function __construct(Node $destination, string $basename, int $currentTime)
+	public function __construct(Node $destination, string $basename, int $currentTime, int $uid, int $gid)
 	{
-		parent::__construct($basename, $currentTime);
+		parent::__construct($basename, $currentTime, $uid, $gid);
 		$this->destination = $destination;
 	}
 

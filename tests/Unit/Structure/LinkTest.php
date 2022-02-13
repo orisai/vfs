@@ -13,16 +13,16 @@ final class LinkTest extends TestCase
 
 	public function testFileSizeAssumesTargetSize(): void
 	{
-		$node = new File('file', time());
+		$node = new File('file', time(), 0, 0);
 		$node->setData('12345');
 
-		$link = new Link($node, 'link', time());
+		$link = new Link($node, 'link', time(), 0, 0);
 
 		self::assertEquals($node->getSize(), $link->getSize());
 
-		$dir = new Directory('/d', time());
+		$dir = new Directory('/d', time(), 0, 0);
 
-		new Link($dir, 'link', time());
+		new Link($dir, 'link', time(), 0, 0);
 
 		self::assertEquals($dir->getSize(), $dir->getSize());
 

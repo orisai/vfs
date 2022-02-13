@@ -16,9 +16,9 @@ final class RootDirectory extends Directory
 
 	private ?string $scheme = null;
 
-	public function __construct(int $currentTime)
+	public function __construct(int $currentTime, int $uid, int $gid)
 	{
-		parent::__construct(self::BASENAME, $currentTime);
+		parent::__construct(self::BASENAME, $currentTime, $uid, $gid);
 	}
 
 	/**

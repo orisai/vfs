@@ -12,7 +12,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testPointerPositionInitializedToZero(): void
 	{
-		$file = new File('/file', time());
+		$file = new File('/file', time(), 0, 0);
 		$pointer = new FileHandler($file);
 
 		self::assertEquals(0, $pointer->position());
@@ -20,7 +20,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testPointerPositionSetterGetter(): void
 	{
-		$file = new File('/file', time());
+		$file = new File('/file', time(), 0, 0);
 		$pointer = new FileHandler($file);
 
 		$pointer->position(15);
@@ -29,7 +29,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testPointerFindsEndOfFile(): void
 	{
-		$file = new File('/file', time());
+		$file = new File('/file', time(), 0, 0);
 		$file->setData('1234567');
 
 		$pointer = new FileHandler($file);
@@ -41,7 +41,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testDataIsReadInChunks(): void
 	{
-		$file = new File('/file', time());
+		$file = new File('/file', time(), 0, 0);
 		$file->setData('1234567');
 
 		$pointer = new FileHandler($file);
@@ -56,7 +56,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testCheckingEOF(): void
 	{
-		$file = new File('/file', time());
+		$file = new File('/file', time(), 0, 0);
 
 		$handler = new FileHandler($file);
 
@@ -76,7 +76,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testTruncateRemovesDataAndResetsPointer(): void
 	{
-		$file = new File('/file', time());
+		$file = new File('/file', time(), 0, 0);
 		$file->setData('data');
 
 		$handler = new FileHandler($file);
@@ -97,7 +97,7 @@ final class FileHandlerTest extends TestCase
 
 	public function testOffsetPositionMovesPointerCorrectly(): void
 	{
-		$file = new File('/file', time());
+		$file = new File('/file', time(), 0, 0);
 		$file->setData('data');
 
 		$handler = new FileHandler($file);

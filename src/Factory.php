@@ -34,17 +34,17 @@ final class Factory
 
 	public function createRoot(): RootDirectory
 	{
-		return $this->setOwnership(new RootDirectory(time()));
+		return new RootDirectory(time(), $this->uid, $this->gid);
 	}
 
 	public function createDir(string $basename): Directory
 	{
-		return $this->setOwnership(new Directory($basename, time()));
+		return new Directory($basename, time(), $this->uid, $this->gid);
 	}
 
 	public function createFile(string $basename): File
 	{
-		return $this->setOwnership(new File($basename, time()));
+		return new File($basename, time(), $this->uid, $this->gid);
 	}
 
 	/**
@@ -52,22 +52,7 @@ final class Factory
 	 */
 	public function createLink(string $basename, Node $destination): Link
 	{
-		return $this->setOwnership(new Link($destination, $basename, time()));
-	}
-
-	/**
-	 * Set ownership of a node
-	 *
-	 * @template T of Node
-	 * @param T $node
-	 * @return T
-	 */
-	private function setOwnership(Node $node): Node
-	{
-		$node->setUser($this->uid);
-		$node->setGroup($this->gid);
-
-		return $node;
+		return new Link($destination, $basename, time(), $this->uid, $this->gid);
 	}
 
 }

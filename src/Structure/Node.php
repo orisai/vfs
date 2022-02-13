@@ -3,7 +3,6 @@
 namespace Orisai\VFS\Structure;
 
 use LogicException;
-use Orisai\VFS\Wrapper\PermissionHelper;
 
 /**
  * @internal
@@ -29,11 +28,13 @@ abstract class Node
 
 	private int $mode;
 
-	public function __construct(string $basename, int $currentTime)
+	public function __construct(string $basename, int $currentTime, int $uid, int $gid)
 	{
 		$this->setMode(self::DEFAULT_MODE);
 		$this->basename = $basename;
 		$this->atime = $this->mtime = $this->ctime = $currentTime;
+		$this->uid = $uid;
+		$this->gid = $gid;
 	}
 
 	abstract public static function getStatType(): int;
@@ -65,7 +66,7 @@ abstract class Node
 
 	public function getUser(): int
 	{
-		return $this->uid ?? PermissionHelper::ROOT_ID;
+		return $this->uid;
 	}
 
 	public function setGroup(int $gid): void
@@ -75,7 +76,7 @@ abstract class Node
 
 	public function getGroup(): int
 	{
-		return $this->gid ?? PermissionHelper::ROOT_ID;
+		return $this->gid;
 	}
 
 	/**

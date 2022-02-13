@@ -13,26 +13,26 @@ final class RootTest extends TestCase
 
 	public function testBaseName(): void
 	{
-		$root = new RootDirectory(time());
+		$root = new RootDirectory(time(), 0, 0);
 		self::assertEquals('/', $root->getBasename());
 	}
 
 	public function testPath(): void
 	{
-		$root = new RootDirectory(time());
+		$root = new RootDirectory(time(), 0, 0);
 		self::assertEquals('/', $root->getPath());
 	}
 
 	public function testDirname(): void
 	{
-		$root = new RootDirectory(time());
+		$root = new RootDirectory(time(), 0, 0);
 		self::assertEquals('', $root->getDirname());
 	}
 
 	public function testThrowsWhenTryingToSetParent(): void
 	{
-		$root = new RootDirectory(time());
-		$dir = new Directory('a', time());
+		$root = new RootDirectory(time(), 0, 0);
+		$dir = new Directory('a', time(), 0, 0);
 
 		$this->expectException(LogicException::class);
 
@@ -41,7 +41,7 @@ final class RootTest extends TestCase
 
 	public function testRootPathReturnsWithScheme(): void
 	{
-		$root = new RootDirectory(time());
+		$root = new RootDirectory(time(), 0, 0);
 
 		$root->setScheme('scheme://');
 		self::assertEquals('/', $root, 'No scheme when one is set');
@@ -50,7 +50,7 @@ final class RootTest extends TestCase
 
 	public function testURLIsReturned(): void
 	{
-		$root = new RootDirectory(time());
+		$root = new RootDirectory(time(), 0, 0);
 
 		$root->setScheme('scheme://');
 		self::assertEquals('scheme://', $root->getUrl());
@@ -62,7 +62,7 @@ final class RootTest extends TestCase
 
 	public function testURLThrowsWhenNoScheme(): void
 	{
-		$root = new RootDirectory(time());
+		$root = new RootDirectory(time(), 0, 0);
 
 		$this->expectException('RuntimeException');
 
@@ -71,7 +71,7 @@ final class RootTest extends TestCase
 
 	public function testRootPathReturnsWithoutScheme(): void
 	{
-		$root = new RootDirectory(time());
+		$root = new RootDirectory(time(), 0, 0);
 
 		self::assertEquals('/', $root);
 
