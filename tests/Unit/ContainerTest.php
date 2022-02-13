@@ -12,6 +12,7 @@ use Orisai\VFS\Structure\File;
 use Orisai\VFS\Structure\Link;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Throwable;
 
 final class ContainerTest extends TestCase
 {
@@ -373,7 +374,14 @@ final class ContainerTest extends TestCase
 		$container = new Container($factory);
 		$container->createDir('/dir');
 
-		self::assertInstanceOf(Directory::class, $container->getDirectoryAt('/dir'));
+		$e = null;
+		try {
+			$container->getDirectoryAt('/dir');
+		} catch (Throwable $e) {
+			// Handled below
+		}
+
+		self::assertNull($e);
 	}
 
 	public function testFileAtThrowsNonFileIfReturnedNotFile(): void
@@ -403,7 +411,14 @@ final class ContainerTest extends TestCase
 		$container = new Container($factory);
 		$container->createFile('/file');
 
-		self::assertInstanceOf(File::class, $container->getFileAt('/file'));
+		$e = null;
+		try {
+			$container->getFileAt('/file');
+		} catch (Throwable $e) {
+			// Handled below
+		}
+
+		self::assertNull($e);
 	}
 
 }

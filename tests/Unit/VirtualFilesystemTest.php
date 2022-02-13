@@ -118,17 +118,13 @@ final class VirtualFilesystemTest extends TestCase
 			],
 		]);
 
-		$dir = $fs->getContainer()->getDirectoryAt('/dir3');
-
-		self::assertInstanceOf(Directory::class, $dir);
+		$fs->getContainer()->getDirectoryAt('/dir3');
 
 		$file = $fs->getContainer()->getFileAt('/dir3/file');
 
 		self::assertEquals('nested', $file->getData());
 
-		$dir = $fs->getContainer()->getDirectoryAt('/dir3/dir4/dir5');
-
-		self::assertInstanceOf(Directory::class, $dir);
+		$fs->getContainer()->getDirectoryAt('/dir3/dir4/dir5');
 
 		$file = $fs->getContainer()->getFileAt('/dir3/dir4/dir5/file5');
 

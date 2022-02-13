@@ -2,10 +2,15 @@ includes:
 	- phpstan.base.neon
 
 parameters:
-	level: 3
+	level: 6
 	resultCachePath: %currentWorkingDirectory%/var/tools/PHPStan/resultCache.tests.php
 
 	ignoreErrors:
-		# Error control trick
-		- message: "#^Offset 'n\\/a' does not exist on array\\{\\}\\.$#"
+		# It has, we are testing access time
+		- message: '#^Call to function file_get_contents\(\) on a separate line has no effect\.$#'
 		  path: ../tests/Unit/WrapperTest.php
+		  count: 1
+		# Type is recursive, can't define
+		- message: '#^Method (.*)\:\:createStructure\(\) has parameter \$structure with no value type specified in iterable type array\.$#'
+		  path: ../tests/Unit/VirtualFilesystemTest.php
+		  count: 1

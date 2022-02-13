@@ -87,8 +87,6 @@ final class WrapperTest extends TestCase
 		$this->uid = function_exists('posix_getuid') ? posix_getuid() : PermissionHelper::ROOT_ID;
 		$this->gid = function_exists('posix_getgid') ? posix_getgid() : PermissionHelper::ROOT_ID;
 
-		$na = [];
-		@$na['n/a']; //putting error in known state
 	}
 
 	public function testSchemeStripping(): void
@@ -1111,7 +1109,7 @@ final class WrapperTest extends TestCase
 		$dir = $fs->createDirectory('/dir');
 		$file = $fs->createFile('/file');
 		$dir->setMode(0_000);
-		$na = [];
+
 		$openedPath = null;
 
 		$wr = new StreamWrapper();
@@ -1125,7 +1123,6 @@ final class WrapperTest extends TestCase
 			$error['message'],
 		);
 
-		@$na['n/a']; //putting error in known state
 		$file->setMode(0_000);
 		@$wr->stream_open($fs->getPathWithScheme('/file'), 'r', STREAM_REPORT_ERRORS, $openedPath);
 
@@ -1136,7 +1133,6 @@ final class WrapperTest extends TestCase
 			$error['message'],
 		);
 
-		@$na['n/a']; //putting error in known state
 		$file->setMode(0_000);
 		@$wr->stream_open($fs->getPathWithScheme('/file'), 'w', STREAM_REPORT_ERRORS, $openedPath);
 
@@ -1147,7 +1143,6 @@ final class WrapperTest extends TestCase
 			$error['message'],
 		);
 
-		@$na['n/a']; //putting error in known state
 		$file->setMode(0_000);
 		@$wr->stream_open($fs->getPathWithScheme('/file'), 'a', STREAM_REPORT_ERRORS, $openedPath);
 
@@ -1158,7 +1153,6 @@ final class WrapperTest extends TestCase
 			$error['message'],
 		);
 
-		@$na['n/a']; //putting error in known state
 		$file->setMode(0_000);
 		@$wr->stream_open($fs->getPathWithScheme('/file'), 'w+', STREAM_REPORT_ERRORS, $openedPath);
 
@@ -1337,9 +1331,6 @@ final class WrapperTest extends TestCase
 			$error['message'],
 		);
 
-		$na = [];
-		@$na['n/a']; //putting error in known state
-
 		self::assertFalse(
 			@$wr->stream_metadata($fs->getPathWithScheme('/file'), STREAM_META_OWNER_NAME, 'user'),
 			'Not allowed to chown by name if not root',
@@ -1352,8 +1343,6 @@ final class WrapperTest extends TestCase
 			$error['message'],
 		);
 
-		@$na['n/a']; //putting error in known state
-
 		self::assertFalse(
 			@$wr->stream_metadata($fs->getPathWithScheme('/file'), STREAM_META_GROUP, 1),
 			'Not allowed to chgrp if not root',
@@ -1365,8 +1354,6 @@ final class WrapperTest extends TestCase
 			'chgrp: %s: Permission denied',
 			$error['message'],
 		);
-
-		@$na['n/a']; //putting error in known state
 
 		self::assertFalse(
 			@$wr->stream_metadata($fs->getPathWithScheme('/file'), STREAM_META_GROUP_NAME, 'group'),
