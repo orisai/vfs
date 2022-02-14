@@ -39,7 +39,7 @@
 
 ##
 
-> This package is remake of [php-vfs](https://github.com/michael-donat/php-vfs) from [michael-donat](https://github.com/michael-donat/php-vfs). Thank you, Michael!
+> This package is remake of [php-vfs](https://github.com/michael-donat/php-vfs) from [michael-donat](https://github.com/michael-donat). Thank you, Michael!
 
 ```php
 use Orisai\VFS\VFS;
