@@ -40,3 +40,19 @@
 ##
 
 > This package is remake of [php-vfs](https://github.com/michael-donat/php-vfs) from [michael-donat](https://github.com/michael-donat/php-vfs). Thank you, Michael!
+
+```php
+use Orisai\VFS\VFS;
+
+// Register VFS protocol
+$scheme = VFS::register();
+
+// Write into virtual file
+file_put_contents("$scheme://dir/file", 'content');
+
+// Read content of virtual file
+$content  = file_get_contents("$scheme://dir/file");
+
+// Unregister protocol, delete the virtual filesystem
+VFS::unregister($scheme);
+```
