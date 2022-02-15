@@ -94,7 +94,7 @@ final class StreamWrapper
 	{
 		assert($this->currentFile !== null);
 
-		return $this->currentFile->position();
+		return $this->currentFile->getPosition();
 	}
 
 	/**
@@ -454,7 +454,7 @@ final class StreamWrapper
 
 		switch ($whence) {
 			case SEEK_SET:
-				$this->currentFile->position($offset);
+				$this->currentFile->setPosition($offset);
 
 				break;
 			case SEEK_CUR:
