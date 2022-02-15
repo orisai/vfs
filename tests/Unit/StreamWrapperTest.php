@@ -297,7 +297,7 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat('mkdir: %s: No such file or directory', $error['message']);
+		self::assertSame('mkdir: /dir/a: No such file or directory', $error['message']);
 	}
 
 	public function testStreamWriting(): void
@@ -366,16 +366,17 @@ final class StreamWrapperTest extends TestCase
 	{
 		self::assertFalse(@fopen("$this->scheme://nonExistingFile", 'r'));
 
+		$class = StreamWrapper::class;
 		$error = error_get_last();
 
 		if (PHP_VERSION_ID >= 8_00_00) {
-			self::assertStringMatchesFormat(
-				'fopen(%s://nonExistingFile): Failed to open stream: %s',
+			self::assertSame(
+				"fopen($this->scheme://nonExistingFile): Failed to open stream: \"$class::stream_open\" call failed",
 				$error['message'],
 			);
 		} else {
-			self::assertStringMatchesFormat(
-				'fopen(%s://nonExistingFile): failed to open stream: %s',
+			self::assertSame(
+				"fopen($this->scheme://nonExistingFile): failed to open stream: \"$class::stream_open\" call failed",
 				$error['message'],
 			);
 		}
@@ -412,12 +413,19 @@ final class StreamWrapperTest extends TestCase
 	{
 		self::assertFalse(@fopen("$this->scheme://dir/file", 'w'));
 
+		$class = StreamWrapper::class;
 		$error = error_get_last();
 
 		if (PHP_VERSION_ID >= 8_00_00) {
-			self::assertStringMatchesFormat('fopen(%s://dir/file): Failed to open stream: %s', $error['message']);
+			self::assertSame(
+				"fopen($this->scheme://dir/file): Failed to open stream: \"$class::stream_open\" call failed",
+				$error['message'],
+			);
 		} else {
-			self::assertStringMatchesFormat('fopen(%s://dir/file): failed to open stream: %s', $error['message']);
+			self::assertSame(
+				"fopen($this->scheme://dir/file): failed to open stream: \"$class::stream_open\" call failed",
+				$error['message'],
+			);
 		}
 	}
 
@@ -576,8 +584,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'touch: %s: No such file or directory.',
+		self::assertSame(
+			'touch: /dir/file: No such file or directory.',
 			$error['message'],
 			'Fails when no parent',
 		);
@@ -630,8 +638,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'mv: rename %s to %s: No such file or directory',
+		self::assertSame(
+			'mv: rename /file to /dir/file2: No such file or directory',
 			$error['message'],
 			'Triggers when moving non existing file',
 		);
@@ -642,8 +650,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'mv: rename %s to %s: No such file or directory',
+		self::assertSame(
+			'mv: rename /file to /dir/file2: No such file or directory',
 			$error['message'],
 			'Triggers when moving to non existing directory',
 		);
@@ -654,8 +662,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'mv: rename %s to %s: Not a directory',
+		self::assertSame(
+			'mv: rename /dir to /file: Not a directory',
 			$error['message'],
 			'Triggers when moving to non existing directory',
 		);
@@ -694,8 +702,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'rm: %s: No such file or directory',
+		self::assertSame(
+			'rm: /file: No such file or directory',
 			$error['message'],
 			'Warning when file does not exist',
 		);
@@ -706,8 +714,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'rm: %s: is a directory',
+		self::assertSame(
+			'rm: /dir: is a directory',
 			$error['message'],
 			'Warning when trying to remove directory',
 		);
@@ -732,8 +740,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'Warning: rmdir(%s): Directory not empty',
+		self::assertSame(
+			'Warning: rmdir(/dir): Directory not empty',
 			$error['message'],
 			'Warning triggered when removing non empty directory',
 		);
@@ -745,8 +753,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'Warning: rmdir(%s): No such file or directory',
+		self::assertSame(
+			'Warning: rmdir(/dir): No such file or directory',
 			$error['message'],
 			'Warning triggered when removing non existing directory',
 		);
@@ -761,8 +769,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'Warning: rmdir(%s): Not a directory',
+		self::assertSame(
+			'Warning: rmdir(/file): Not a directory',
 			$error['message'],
 			'Warning triggered when trying to remove a file',
 		);
@@ -783,8 +791,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'%s: failed to open stream.',
+		self::assertSame(
+			'/file: failed to open stream.',
 			$error['message'],
 			'Stream open errors when flag passed',
 		);
@@ -807,8 +815,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'opendir(%s): failed to open dir: No such file or directory',
+		self::assertSame(
+			'opendir(/nonExistingDir): failed to open dir: No such file or directory',
 			$error['message'],
 			'Opening non existing directory triggers warning',
 		);
@@ -831,8 +839,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'opendir(%s): failed to open dir: Not a directory',
+		self::assertSame(
+			'opendir(/file): failed to open dir: Not a directory',
 			$error['message'],
 			'Opening fiels with opendir triggers warning',
 		);
@@ -905,8 +913,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'fopen(%s): failed to open stream: Is a directory',
+		self::assertSame(
+			'fopen(/dir): failed to open stream: Is a directory',
 			$error['message'],
 			'Stream does not open directories',
 		);
@@ -1081,8 +1089,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'%s: failed to open stream: Permission denied',
+		self::assertSame(
+			'fopen(/dir/file): failed to open stream: Permission denied',
 			$error['message'],
 		);
 
@@ -1091,8 +1099,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'%s: failed to open stream: Permission denied',
+		self::assertSame(
+			'fopen(/file): failed to open stream: Permission denied',
 			$error['message'],
 		);
 
@@ -1101,8 +1109,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'%s: failed to open stream: Permission denied',
+		self::assertSame(
+			'fopen(/file): failed to open stream: Permission denied',
 			$error['message'],
 		);
 
@@ -1111,8 +1119,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'%s: failed to open stream: Permission denied',
+		self::assertSame(
+			'fopen(/file): failed to open stream: Permission denied',
 			$error['message'],
 		);
 
@@ -1121,8 +1129,8 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'%s: failed to open stream: Permission denied',
+		self::assertSame(
+			'fopen(/file): failed to open stream: Permission denied',
 			$error['message'],
 		);
 	}
@@ -1138,10 +1146,7 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'mkdir: %s: Permission denied',
-			$error['message'],
-		);
+		self::assertSame('mkdir: /test: Permission denied', $error['message']);
 	}
 
 	public function testPermissionsAreCheckedWhenRemovingFiles(): void
@@ -1162,10 +1167,7 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'rm: %s: Permission denied',
-			$error['message'],
-		);
+		self::assertSame('rm: /file: Permission denied', $error['message']);
 	}
 
 	public function testRmDirNotAllowedWhenDirectoryNotWritable(): void
@@ -1196,10 +1198,7 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'rmdir: %s: Permission denied',
-			$error['message'],
-		);
+		self::assertSame('rmdir: /dir: Permission denied', $error['message']);
 
 		$dir->setMode(0_400);
 		self::assertTrue(
@@ -1223,10 +1222,7 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'chmod: %s: Permission denied',
-			$error['message'],
-		);
+		self::assertSame('chmod: /file: Permission denied', $error['message']);
 	}
 
 	public function testChownAndChgrpAllowedIfOwner(): void
@@ -1287,10 +1283,7 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'chown: %s: Permission denied',
-			$error['message'],
-		);
+		self::assertSame('chown: /file: Permission denied', $error['message']);
 
 		self::assertFalse(
 			@$wr->stream_metadata("$this->scheme://file", STREAM_META_OWNER_NAME, 'user'),
@@ -1299,10 +1292,7 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'chown: %s: Permission denied',
-			$error['message'],
-		);
+		self::assertSame('chown: /file: Permission denied', $error['message']);
 
 		self::assertFalse(
 			@$wr->stream_metadata("$this->scheme://file", STREAM_META_GROUP, 1),
@@ -1311,10 +1301,7 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'chgrp: %s: Permission denied',
-			$error['message'],
-		);
+		self::assertSame('chgrp: /file: Permission denied', $error['message']);
 
 		self::assertFalse(
 			@$wr->stream_metadata("$this->scheme://file", STREAM_META_GROUP_NAME, 'group'),
@@ -1323,10 +1310,7 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'chgrp: %s: Permission denied',
-			$error['message'],
-		);
+		self::assertSame('chgrp: /file: Permission denied', $error['message']);
 	}
 
 	public function testTouchNotAllowedIfNotOwnerOrNotWritable(): void
@@ -1345,10 +1329,7 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertStringMatchesFormat(
-			'touch: %s: Permission denied',
-			$error['message'],
-		);
+		self::assertSame('touch: /file: Permission denied', $error['message']);
 
 		$file->setUser($this->uid);
 
