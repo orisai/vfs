@@ -3,9 +3,6 @@
 namespace Orisai\VFS\Wrapper;
 
 use Orisai\VFS\Structure\Node;
-use function function_exists;
-use function posix_getgid;
-use function posix_getuid;
 
 /**
  * @internal
@@ -26,10 +23,10 @@ final class PermissionHelper
 
 	private int $gid;
 
-	public function __construct(?int $uid = null, ?int $gid = null)
+	public function __construct(int $uid, int $gid)
 	{
-		$this->uid = $uid ?? (function_exists('posix_getuid') ? posix_getuid() : self::ROOT_ID);
-		$this->gid = $gid ?? (function_exists('posix_getgid') ? posix_getgid() : self::ROOT_ID);
+		$this->uid = $uid;
+		$this->gid = $gid;
 	}
 
 	public function userIsOwner(Node $node): bool

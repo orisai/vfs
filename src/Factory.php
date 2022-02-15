@@ -32,6 +32,16 @@ final class Factory
 		$this->gid = function_exists('posix_getgid') ? posix_getgid() : PermissionHelper::ROOT_ID;
 	}
 
+	public function getUid(): int
+	{
+		return $this->uid;
+	}
+
+	public function getGid(): int
+	{
+		return $this->gid;
+	}
+
 	public function createRoot(): RootDirectory
 	{
 		return new RootDirectory(time(), $this->uid, $this->gid);

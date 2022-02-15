@@ -37,8 +37,8 @@ final class Container
 	public function __construct(Factory $factory)
 	{
 		$this->factory = $factory;
-		$this->root = $this->getFactory()->createRoot();
-		$this->setPermissionHelper(new PermissionHelper());
+		$this->root = $factory->createRoot();
+		$this->setPermissionHelper(new PermissionHelper($factory->getUid(), $factory->getGid()));
 	}
 
 	public function getFactory(): Factory
