@@ -4,6 +4,7 @@ namespace Tests\Orisai\VFS\Unit;
 
 use DirectoryIterator;
 use finfo;
+use Orisai\VFS\Container;
 use Orisai\VFS\StreamWrapper;
 use Orisai\VFS\Structure\Directory;
 use Orisai\VFS\VFS;
@@ -73,6 +74,8 @@ final class StreamWrapperTest extends TestCase
 
 	private string $scheme;
 
+	private Container $container;
+
 	private int $uid;
 
 	private int $gid;
@@ -81,7 +84,8 @@ final class StreamWrapperTest extends TestCase
 	{
 		parent::setUp();
 		$this->scheme = VFS::register();
-		$factory = StreamWrapper::getContainer($this->scheme)->getFactory();
+		$this->container = StreamWrapper::getContainer($this->scheme);
+		$factory = $this->container->getFactory();
 		$this->uid = $factory->getUid();
 		$this->gid = $factory->getGid();
 	}
@@ -102,11 +106,9 @@ final class StreamWrapperTest extends TestCase
 
 	public function testContainerIsReturnedFromContext(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-
-		self::assertSame($container, StreamWrapper::getContainer("$this->scheme://file"));
-		self::assertSame($container, StreamWrapper::getContainer("$this->scheme://"));
-		self::assertSame($container, StreamWrapper::getContainer("$this->scheme:///file"));
+		self::assertSame($this->container, StreamWrapper::getContainer("$this->scheme://file"));
+		self::assertSame($this->container, StreamWrapper::getContainer("$this->scheme://"));
+		self::assertSame($this->container, StreamWrapper::getContainer("$this->scheme:///file"));
 	}
 
 	public function testFileExists(): void
@@ -136,10 +138,9 @@ final class StreamWrapperTest extends TestCase
 
 	public function testIsLink(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$factory = $container->getFactory();
+		$factory = $this->container->getFactory();
 
-		$container->getRootDirectory()->addDirectory($d = $factory->createDir('dir'));
+		$this->container->getRootDirectory()->addDirectory($d = $factory->createDir('dir'));
 		$d->addLink($factory->createLink('link', $d));
 
 		self::assertTrue(is_link("$this->scheme://dir/link"));
@@ -162,8 +163,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testChmod(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$root = $container->getRootDirectory();
+		$root = $this->container->getRootDirectory();
 
 		$path = "$this->scheme://";
 
@@ -186,8 +186,7 @@ final class StreamWrapperTest extends TestCase
 			);
 		}
 
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->setPermissionChecker(
+		$this->container->setPermissionChecker(
 			new PermissionChecker(PermissionChecker::ROOT_ID, PermissionChecker::ROOT_ID),
 		);
 
@@ -203,8 +202,7 @@ final class StreamWrapperTest extends TestCase
 			);
 		}
 
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->setPermissionChecker(
+		$this->container->setPermissionChecker(
 			new PermissionChecker(PermissionChecker::ROOT_ID, PermissionChecker::ROOT_ID),
 		);
 
@@ -222,8 +220,7 @@ final class StreamWrapperTest extends TestCase
 			);
 		}
 
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->setPermissionChecker(
+		$this->container->setPermissionChecker(
 			new PermissionChecker(PermissionChecker::ROOT_ID, PermissionChecker::ROOT_ID),
 		);
 
@@ -245,8 +242,7 @@ final class StreamWrapperTest extends TestCase
 			);
 		}
 
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->setPermissionChecker(
+		$this->container->setPermissionChecker(
 			new PermissionChecker(PermissionChecker::ROOT_ID, PermissionChecker::ROOT_ID),
 		);
 
@@ -260,8 +256,6 @@ final class StreamWrapperTest extends TestCase
 
 	public function testMkdir(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-
 		mkdir("$this->scheme://dir");
 
 		self::assertFileExists("$this->scheme://dir");
@@ -269,7 +263,7 @@ final class StreamWrapperTest extends TestCase
 
 		mkdir("$this->scheme://dir2", 0_000, false);
 
-		$dir = $container->getNodeAt('/dir2');
+		$dir = $this->container->getNodeAt('/dir2');
 
 		self::assertSame(0_000 | Directory::getStatType(), $dir->getMode());
 	}
@@ -300,55 +294,52 @@ final class StreamWrapperTest extends TestCase
 
 	public function testStreamWriting(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-
 		file_put_contents("$this->scheme://file", 'data');
 
-		self::assertSame('data', $container->getFileAt('/file')->getData());
+		self::assertSame('data', $this->container->getFileAt('/file')->getData());
 
 		//long strings
 		file_put_contents("$this->scheme://file2", str_repeat('data ', 5_000));
 
-		self::assertSame(str_repeat('data ', 5_000), $container->getFileAt('/file2')->getData());
+		self::assertSame(str_repeat('data ', 5_000), $this->container->getFileAt('/file2')->getData());
 
 		//truncating
 		file_put_contents("$this->scheme://file", 'data2');
 
-		self::assertSame('data2', $container->getFileAt('/file')->getData());
+		self::assertSame('data2', $this->container->getFileAt('/file')->getData());
 
 		//appending
 		file_put_contents("$this->scheme://file", 'data3', FILE_APPEND);
 
-		self::assertSame('data2data3', $container->getFileAt('/file')->getData());
+		self::assertSame('data2data3', $this->container->getFileAt('/file')->getData());
 
 		$handle = fopen("$this->scheme://file2", 'w');
 
 		fwrite($handle, 'data');
-		self::assertSame('data', $container->getFileAt('/file2')->getData());
+		self::assertSame('data', $this->container->getFileAt('/file2')->getData());
 
 		fwrite($handle, '2');
-		self::assertSame('data2', $container->getFileAt('/file2')->getData(), 'Pointer advanced');
+		self::assertSame('data2', $this->container->getFileAt('/file2')->getData(), 'Pointer advanced');
 
 		fwrite($handle, 'data', 1);
 		self::assertSame(
 			'data2d',
-			$container->getFileAt('/file2')->getData(),
+			$this->container->getFileAt('/file2')->getData(),
 			'Written with limited length',
 		);
 	}
 
 	public function testStreamReading(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createFile('/file', 'test data');
+		$this->container->createFile('/file', 'test data');
 
 		self::assertSame('test data', file_get_contents("$this->scheme://file"));
 
 		//long string
-		$container->createFile('/file2', str_repeat('test data', 5_000));
+		$this->container->createFile('/file2', str_repeat('test data', 5_000));
 		self::assertSame(str_repeat('test data', 5_000), file_get_contents("$this->scheme://file2"));
 
-		$container->createDir('/dir');
+		$this->container->createDir('/dir');
 
 		self::assertEmpty(file_get_contents("$this->scheme://dir"));
 	}
@@ -382,13 +373,11 @@ final class StreamWrapperTest extends TestCase
 
 	public function testOpeningForWritingCorrectlyOpensAndTruncatesFile(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-
 		$handle = fopen("$this->scheme://nonExistingFile", 'w');
 
 		self::assertIsResource($handle);
 
-		$file = $container->createFile('/file', 'data');
+		$file = $this->container->createFile('/file', 'data');
 
 		$handle = fopen("$this->scheme://file", 'w');
 
@@ -398,8 +387,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testOpeningForAppendingDoesNotTruncateFile(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = $container->createFile('/file', 'data');
+		$file = $this->container->createFile('/file', 'data');
 
 		$handle = fopen("$this->scheme://file", 'a');
 
@@ -429,16 +417,14 @@ final class StreamWrapperTest extends TestCase
 
 	public function testFileGetContentsOffsetsAndLimitsCorrectly(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createFile('/file', '--data--');
+		$this->container->createFile('/file', '--data--');
 
 		self::assertSame('data', file_get_contents("$this->scheme://file", false, null, 2, 4));
 	}
 
 	public function testFileSeeking(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createFile('/file', 'data');
+		$this->container->createFile('/file', 'data');
 
 		$handle = fopen("$this->scheme://file", 'r');
 
@@ -454,8 +440,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testFileTruncating(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = $container->createFile('/file', 'data--');
+		$file = $this->container->createFile('/file', 'data--');
 
 		//has to opened for append otherwise file is automatically truncated by 'w' opening mode
 		$handle = fopen("$this->scheme://file", 'a');
@@ -467,8 +452,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testOpeningModesAreHandledCorrectly(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = $container->createFile('/file', 'data');
+		$file = $this->container->createFile('/file', 'data');
 
 		$handle = fopen("$this->scheme://file", 'r');
 		self::assertSame('data', fread($handle, 4), 'Contents can be read in read mode');
@@ -503,8 +487,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testFileTimesAreModifiedCorrectly(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = $container->createFile('/file', 'data');
+		$file = $this->container->createFile('/file', 'data');
 
 		$stat = stat("$this->scheme://file");
 
@@ -572,8 +555,6 @@ final class StreamWrapperTest extends TestCase
 
 	public function testTouchFileCreation(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-
 		touch("$this->scheme://file2");
 
 		self::assertFileExists("$this->scheme://file2");
@@ -588,7 +569,7 @@ final class StreamWrapperTest extends TestCase
 			'Fails when no parent',
 		);
 
-		$file = $container->getNodeAt('/file2');
+		$file = $this->container->getNodeAt('/file2');
 
 		$file->setAccessTime(20);
 		$file->setModificationTime(20);
@@ -618,20 +599,17 @@ final class StreamWrapperTest extends TestCase
 
 	public function testRenamesMovesFileCorrectly(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createFile('/file', 'data');
+		$this->container->createFile('/file', 'data');
 
 		rename("$this->scheme://file", "$this->scheme://file2");
 
-		self::assertTrue($container->hasNodeAt('/file2'));
-		self::assertFalse($container->hasNodeAt('/file'));
-		self::assertSame('data', $container->getFileAt('/file2')->getData());
+		self::assertTrue($this->container->hasNodeAt('/file2'));
+		self::assertFalse($this->container->hasNodeAt('/file'));
+		self::assertSame('data', $this->container->getFileAt('/file2')->getData());
 	}
 
 	public function testRenameReturnsCorrectWarnings(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-
 		@rename("$this->scheme://file", "$this->scheme://dir/file2");
 
 		$error = error_get_last();
@@ -642,7 +620,7 @@ final class StreamWrapperTest extends TestCase
 			'Triggers when moving non existing file',
 		);
 
-		$container->createFile('/file');
+		$this->container->createFile('/file');
 
 		@rename("$this->scheme://file", "$this->scheme://dir/file2");
 
@@ -654,7 +632,7 @@ final class StreamWrapperTest extends TestCase
 			'Triggers when moving to non existing directory',
 		);
 
-		$container->createDir('/dir');
+		$this->container->createDir('/dir');
 
 		@rename("$this->scheme://dir", "$this->scheme://file");
 
@@ -669,33 +647,28 @@ final class StreamWrapperTest extends TestCase
 
 	public function testRenameFailsCorrectly(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
+		self::assertFalse(@rename("$this->scheme://file", "$this->scheme://dir/file2"));
+
+		$this->container->createFile('/file');
 
 		self::assertFalse(@rename("$this->scheme://file", "$this->scheme://dir/file2"));
 
-		$container->createFile('/file');
-
-		self::assertFalse(@rename("$this->scheme://file", "$this->scheme://dir/file2"));
-
-		$container->createDir('/dir');
+		$this->container->createDir('/dir');
 
 		self::assertFalse(@rename("$this->scheme://dir", "$this->scheme://file"));
 	}
 
 	public function testUnlinkRemovesFile(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createFile('/file');
+		$this->container->createFile('/file');
 
 		unlink("$this->scheme://file");
 
-		self::assertFalse($container->hasNodeAt('/file'));
+		self::assertFalse($this->container->hasNodeAt('/file'));
 	}
 
 	public function testUnlinkThrowsWarnings(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-
 		@unlink("$this->scheme://file");
 
 		$error = error_get_last();
@@ -706,7 +679,7 @@ final class StreamWrapperTest extends TestCase
 			'Warning when file does not exist',
 		);
 
-		$container->createDir('/dir');
+		$this->container->createDir('/dir');
 
 		@unlink("$this->scheme://dir");
 
@@ -721,18 +694,16 @@ final class StreamWrapperTest extends TestCase
 
 	public function testRmdirRemovesDirectories(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createDir('/dir');
+		$this->container->createDir('/dir');
 
 		rmdir("$this->scheme://dir");
 
-		self::assertFalse($container->hasNodeAt('/dir'), 'Directory has been removed');
+		self::assertFalse($this->container->hasNodeAt('/dir'), 'Directory has been removed');
 	}
 
 	public function testRmdirErrorsWithNonEmptyDirectories(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createDir('/dir/dir', true);
+		$this->container->createDir('/dir/dir', true);
 
 		@rmdir("$this->scheme://dir");
 
@@ -760,8 +731,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testRmdirErrorsWhenRemovingFile(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createFile('/file');
+		$this->container->createFile('/file');
 
 		@rmdir("$this->scheme://file");
 
@@ -798,8 +768,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testDirectoryOpensForReading(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createDir('/dir');
+		$this->container->createDir('/dir');
 
 		$wrapper = new StreamWrapper();
 
@@ -826,8 +795,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testDirectoryOpenDoesNotOpenFiles(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createFile('/file');
+		$this->container->createFile('/file');
 
 		$wrapper = new StreamWrapper();
 
@@ -846,8 +814,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testDirectoryCloses(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createDir('/dir');
+		$this->container->createDir('/dir');
 
 		$wrapper = new StreamWrapper();
 
@@ -860,10 +827,9 @@ final class StreamWrapperTest extends TestCase
 
 	public function testDirectoryReading(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createDir('/dir1');
-		$container->createDir('/dir2');
-		$container->createDir('/dir3');
+		$this->container->createDir('/dir1');
+		$this->container->createDir('/dir2');
+		$this->container->createDir('/dir3');
 
 		$wr = new StreamWrapper();
 		$wr->dir_opendir("$this->scheme://", STREAM_BUFFER_NONE);
@@ -879,10 +845,9 @@ final class StreamWrapperTest extends TestCase
 
 	public function testDirectoryIterationWithDirectoryIterator(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createDir('/dir1');
-		$container->createDir('/dir2');
-		$container->createDir('/dir3');
+		$this->container->createDir('/dir1');
+		$this->container->createDir('/dir2');
+		$this->container->createDir('/dir3');
 
 		$result = [];
 
@@ -895,8 +860,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testStreamOpenDoesNotOpenDirectoriesForWriting(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createDir('/dir');
+		$this->container->createDir('/dir');
 
 		self::assertFalse(@fopen("$this->scheme://dir", 'w'));
 		self::assertFalse(@fopen("$this->scheme://dir", 'r+'));
@@ -920,8 +884,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testStreamOpenAllowsForDirectoryOpeningForReadingAndReturnsEmptyStrings(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createDir('/dir');
+		$this->container->createDir('/dir');
 
 		$handle = fopen("$this->scheme://dir", 'r');
 
@@ -932,8 +895,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testPermissionsAreCheckedWhenOpeningFiles(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = $container->createFile('/file');
+		$file = $this->container->createFile('/file');
 		$openedPath = null;
 
 		$wr = new StreamWrapper();
@@ -981,8 +943,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testTemporaryFileCreatedToReadDirectoriesWithStreamOpenInheritsPermissions(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = $container->createDir('/dir');
+		$file = $this->container->createDir('/dir');
 		$openedPath = null;
 
 		$wr = new StreamWrapper();
@@ -1030,8 +991,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testPermissionsAreCheckedWhenOpeningDirectories(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = $container->createDir('/dir');
+		$file = $this->container->createDir('/dir');
 		$openedPath = null;
 
 		$wr = new StreamWrapper();
@@ -1059,8 +1019,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testPermissionsAreCheckedWhenCreatingFilesWithinDirectories(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$dir = $container->createDir('/dir');
+		$dir = $this->container->createDir('/dir');
 
 		$dir->setMode(0_000);
 		self::assertFalse(@file_put_contents("$this->scheme://dir/file", 'data'));
@@ -1074,9 +1033,8 @@ final class StreamWrapperTest extends TestCase
 
 	public function testStreamOpenReportsErrorsOnPermissionDenied(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$dir = $container->createDir('/dir');
-		$file = $container->createFile('/file');
+		$dir = $this->container->createDir('/dir');
+		$file = $this->container->createFile('/file');
 		$dir->setMode(0_000);
 
 		$openedPath = null;
@@ -1135,8 +1093,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testPermissionsAreCheckedWhenCreatingDirectories(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createDir('/test', false, 0_000);
+		$this->container->createDir('/test', false, 0_000);
 
 		$wr = new StreamWrapper();
 
@@ -1149,14 +1106,13 @@ final class StreamWrapperTest extends TestCase
 
 	public function testPermissionsAreCheckedWhenRemovingFiles(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = $container->createFile('/file');
+		$file = $this->container->createFile('/file');
 		$file->setMode(0_000);
 
 		$wr = new StreamWrapper();
 		self::assertTrue($wr->unlink("$this->scheme://file"), 'Allows removals with writable parent');
 
-		$container->getRootDirectory()->setMode(0_500);
+		$this->container->getRootDirectory()->setMode(0_500);
 
 		self::assertFalse(
 			@$wr->unlink("$this->scheme://file"),
@@ -1170,8 +1126,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testRmDirNotAllowedWhenDirectoryNotWritable(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$dir = $container->createDir('/dir');
+		$dir = $this->container->createDir('/dir');
 
 		$wr = new StreamWrapper();
 
@@ -1207,8 +1162,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testChmodNotAllowedIfNotOwner(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = $container->createFile('/file');
+		$file = $this->container->createFile('/file');
 		$file->setUser($this->uid + 1); //set to non-current
 
 		$wr = new StreamWrapper();
@@ -1225,8 +1179,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testChownAndChgrpAllowedIfOwner(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = $container->createFile($fileName = uniqid('/', true));
+		$file = $this->container->createFile($fileName = uniqid('/', true));
 		$file->setUser($this->uid); //set to current
 
 		$uid = $this->uid + 1;
@@ -1237,21 +1190,21 @@ final class StreamWrapperTest extends TestCase
 			$wr->stream_metadata("$this->scheme://$fileName", STREAM_META_OWNER, $uid),
 		);
 
-		$file = $container->createFile($fileName = uniqid('/', true));
+		$file = $this->container->createFile($fileName = uniqid('/', true));
 		$file->setUser($this->uid); //set to current
 
 		self::assertTrue(
 			$wr->stream_metadata("$this->scheme://$fileName", STREAM_META_OWNER_NAME, 'user'),
 		);
 
-		$file = $container->createFile($fileName = uniqid('/', true));
+		$file = $this->container->createFile($fileName = uniqid('/', true));
 		$file->setUser($this->uid); //set to current
 
 		self::assertTrue(
 			$wr->stream_metadata("$this->scheme://$fileName", STREAM_META_GROUP, $uid),
 		);
 
-		$file = $container->createFile($fileName = uniqid('/', true));
+		$file = $this->container->createFile($fileName = uniqid('/', true));
 		$file->setUser($this->uid); //set to current
 
 		self::assertTrue(
@@ -1268,8 +1221,7 @@ final class StreamWrapperTest extends TestCase
 			);
 		}
 
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = $container->createFile('/file');
+		$file = $this->container->createFile('/file');
 		$file->setUser($this->uid + 1); //set to non-current
 
 		$wr = new StreamWrapper();
@@ -1313,8 +1265,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testTouchNotAllowedIfNotOwnerOrNotWritable(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = $container->createFile('/file');
+		$file = $this->container->createFile('/file');
 		$file->setUser($this->uid + 1); //set to non-current
 		$file->setMode(0_000);
 
@@ -1354,13 +1305,12 @@ final class StreamWrapperTest extends TestCase
 			);
 		}
 
-		$container = StreamWrapper::getContainer($this->scheme);
-		$factory = $container->getFactory();
-		$directory = $container->createDir('/dir');
+		$factory = $this->container->getFactory();
+		$directory = $this->container->createDir('/dir');
 		$link = $factory->createLink('link', $directory);
 		$directory->addLink($link);
 
-		$container->setPermissionChecker(
+		$this->container->setPermissionChecker(
 			new PermissionChecker(PermissionChecker::ROOT_ID, PermissionChecker::ROOT_ID),
 		);
 
@@ -1377,13 +1327,12 @@ final class StreamWrapperTest extends TestCase
 			);
 		}
 
-		$container = StreamWrapper::getContainer($this->scheme);
-		$factory = $container->getFactory();
-		$directory = $container->createDir('/dir');
+		$factory = $this->container->getFactory();
+		$directory = $this->container->createDir('/dir');
 		$link = $factory->createLink('link', $directory);
 		$directory->addLink($link);
 
-		$container->setPermissionChecker(
+		$this->container->setPermissionChecker(
 			new PermissionChecker(PermissionChecker::ROOT_ID, PermissionChecker::ROOT_ID),
 		);
 
@@ -1398,42 +1347,38 @@ final class StreamWrapperTest extends TestCase
 
 	public function testFileCopy(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createFile('/file', 'data');
+		$this->container->createFile('/file', 'data');
 
 		copy("$this->scheme://file", "$this->scheme://file2");
 
 		self::assertFileExists("$this->scheme://file2");
 
-		self::assertSame('data', $container->getFileAt('/file2')->getData());
+		self::assertSame('data', $this->container->getFileAt('/file2')->getData());
 	}
 
 	public function testLinkCopyCreatesHardCopyOfFile(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createFile('/file', 'data');
-		$container->createLink('/link', '/file');
+		$this->container->createFile('/file', 'data');
+		$this->container->createLink('/link', '/file');
 
 		copy("$this->scheme://link", "$this->scheme://file2");
 
 		self::assertFileExists("$this->scheme://file2");
-		self::assertSame('data', $container->getFileAt('/file2')->getData());
+		self::assertSame('data', $this->container->getFileAt('/file2')->getData());
 	}
 
 	public function testLinkReading(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createFile('/file', 'data');
-		$container->createLink('/link', '/file');
+		$this->container->createFile('/file', 'data');
+		$this->container->createLink('/link', '/file');
 
 		self::assertSame('data', file_get_contents("$this->scheme://link"));
 	}
 
 	public function testLinkWriting(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createFile('/file', 'ubots!');
-		$container->createLink('/link', '/file');
+		$this->container->createFile('/file', 'ubots!');
+		$this->container->createLink('/link', '/file');
 
 		file_put_contents("$this->scheme://link", 'data');
 
@@ -1442,9 +1387,8 @@ final class StreamWrapperTest extends TestCase
 
 	public function testChmodViaLink(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$name = "$this->scheme://{$container->createFile('/file')->getPath()}";
-		$link = "$this->scheme://{$container->createLink('/link', '/file')->getPath()}";
+		$name = "$this->scheme://{$this->container->createFile('/file')->getPath()}";
+		$link = "$this->scheme://{$this->container->createLink('/link', '/file')->getPath()}";
 
 		chmod($link, 0_000);
 
@@ -1461,8 +1405,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testIsExecutableReturnsCorrectly(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$container->createFile('/file');
+		$this->container->createFile('/file');
 
 		chmod("$this->scheme://file", 0_000);
 
@@ -1566,8 +1509,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testFileSize(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-		$file = "$this->scheme://{$container->createFile('/file', '12345')->getPath()}";
+		$file = "$this->scheme://{$this->container->createFile('/file', '12345')->getPath()}";
 
 		self::assertSame(5, filesize($file));
 	}
@@ -1600,9 +1542,7 @@ final class StreamWrapperTest extends TestCase
 
 	public function testFinfoSupport(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
-
-		$container->createFile(
+		$this->container->createFile(
 			'/file.gif',
 			base64_decode('R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==', true),
 		);
@@ -1614,9 +1554,8 @@ final class StreamWrapperTest extends TestCase
 
 	public function testRequire(): void
 	{
-		$container = StreamWrapper::getContainer($this->scheme);
 		// phpcs:disable SlevomatCodingStandard.Functions.RequireSingleLineCall
-		$container->createFile(
+		$this->container->createFile(
 			'/file.php',
 			<<<'PHP'
 <?php return 1;
