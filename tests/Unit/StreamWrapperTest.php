@@ -32,7 +32,6 @@ use function fread;
 use function fseek;
 use function ftell;
 use function ftruncate;
-use function function_exists;
 use function fwrite;
 use function is_executable;
 use function is_file;
@@ -42,10 +41,8 @@ use function is_writable;
 use function lchown;
 use function mkdir;
 use function opendir;
-use function posix_getgid;
 use function posix_getgrgid;
 use function posix_getpwuid;
-use function posix_getuid;
 use function rename;
 use function rmdir;
 use function stat;
@@ -74,18 +71,19 @@ use const STREAM_REPORT_ERRORS;
 final class StreamWrapperTest extends TestCase
 {
 
+	private string $scheme;
+
 	private int $uid;
 
 	private int $gid;
 
-	private string $scheme;
-
 	public function setUp(): void
 	{
 		parent::setUp();
-		$this->uid = function_exists('posix_getuid') ? posix_getuid() : PermissionChecker::ROOT_ID;
-		$this->gid = function_exists('posix_getgid') ? posix_getgid() : PermissionChecker::ROOT_ID;
 		$this->scheme = VFS::register();
+		$factory = StreamWrapper::getContainer($this->scheme)->getFactory();
+		$this->uid = $factory->getUid();
+		$this->gid = $factory->getGid();
 	}
 
 	protected function tearDown(): void
