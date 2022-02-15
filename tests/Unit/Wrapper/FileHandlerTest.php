@@ -15,7 +15,7 @@ final class FileHandlerTest extends TestCase
 		$file = new File('/file', time(), 0, 0);
 		$pointer = new FileHandler($file);
 
-		self::assertEquals(0, $pointer->position());
+		self::assertSame(0, $pointer->position());
 	}
 
 	public function testPointerPositionSetterGetter(): void
@@ -24,7 +24,7 @@ final class FileHandlerTest extends TestCase
 		$pointer = new FileHandler($file);
 
 		$pointer->position(15);
-		self::assertEquals(15, $pointer->position());
+		self::assertSame(15, $pointer->position());
 	}
 
 	public function testPointerFindsEndOfFile(): void
@@ -36,7 +36,7 @@ final class FileHandlerTest extends TestCase
 
 		$pointer->seekToEnd();
 
-		self::assertEquals(7, $pointer->position());
+		self::assertSame(7, $pointer->position());
 	}
 
 	public function testDataIsReadInChunks(): void
@@ -46,12 +46,12 @@ final class FileHandlerTest extends TestCase
 
 		$pointer = new FileHandler($file);
 
-		self::assertEquals('12', $pointer->read(2));
-		self::assertEquals(2, $pointer->position());
-		self::assertEquals('345', $pointer->read(3));
-		self::assertEquals(5, $pointer->position());
-		self::assertEquals('67', $pointer->read(10));
-		self::assertEquals(7, $pointer->position());
+		self::assertSame('12', $pointer->read(2));
+		self::assertSame(2, $pointer->position());
+		self::assertSame('345', $pointer->read(3));
+		self::assertSame(5, $pointer->position());
+		self::assertSame('67', $pointer->read(10));
+		self::assertSame(7, $pointer->position());
 	}
 
 	public function testCheckingEOF(): void
@@ -83,14 +83,14 @@ final class FileHandlerTest extends TestCase
 		$handler->truncate();
 
 		self::assertEmpty($file->getData());
-		self::assertEquals(0, $handler->position());
+		self::assertSame(0, $handler->position());
 
 		//truncate to size
 		$file->setData('data--');
 
 		$handler->truncate(4);
-		self::assertEquals(0, $handler->position());
-		self::assertEquals('data', $file->getData());
+		self::assertSame(0, $handler->position());
+		self::assertSame('data', $file->getData());
 	}
 
 	public function testOffsetPositionMovesPointerCorrectly(): void
@@ -101,10 +101,10 @@ final class FileHandlerTest extends TestCase
 		$handler = new FileHandler($file);
 
 		$handler->offsetPosition(2);
-		self::assertEquals(2, $handler->position());
+		self::assertSame(2, $handler->position());
 
 		$handler->offsetPosition(2);
-		self::assertEquals(4, $handler->position());
+		self::assertSame(4, $handler->position());
 	}
 
 }

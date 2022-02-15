@@ -18,17 +18,17 @@ final class LinkTest extends TestCase
 
 		$link = new Link($node, 'link', time(), 0, 0);
 
-		self::assertEquals($node->getSize(), $link->getSize());
+		self::assertSame($node->getSize(), $link->getSize());
 
 		$dir = new Directory('/d', time(), 0, 0);
 
 		new Link($dir, 'link', time(), 0, 0);
 
-		self::assertEquals($dir->getSize(), $dir->getSize());
+		self::assertSame($dir->getSize(), $dir->getSize());
 
 		$dir->addFile($node);
 
-		self::assertEquals($dir->getSize(), $dir->getSize());
+		self::assertSame($dir->getSize(), $dir->getSize());
 	}
 
 }

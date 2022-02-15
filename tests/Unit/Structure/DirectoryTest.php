@@ -20,9 +20,9 @@ class DirectoryTest extends TestCase
 		$root->addDirectory($d2 = new Directory('dir2', time(), 0, 0));
 		$d2->addDirectory($d3 = new Directory('dir3', time(), 0, 0));
 
-		self::assertEquals('dir1', $d1->getBasename());
-		self::assertEquals('dir2', $d2->getBasename());
-		self::assertEquals('dir3', $d3->getBasename());
+		self::assertSame('dir1', $d1->getBasename());
+		self::assertSame('dir2', $d2->getBasename());
+		self::assertSame('dir3', $d3->getBasename());
 	}
 
 	public function testDirnameBuilding(): void
@@ -32,11 +32,11 @@ class DirectoryTest extends TestCase
 		$root->addDirectory($d2 = new Directory('dir2', time(), 0, 0));
 		$d2->addDirectory($d3 = new Directory('dir3', time(), 0, 0));
 
-		self::assertEquals(null, $root->getDirname());
+		self::assertNull($root->getDirname());
 
-		self::assertEquals('/', $d1->getDirname());
-		self::assertEquals('/', $d2->getDirname());
-		self::assertEquals('/dir2', $d3->getDirname());
+		self::assertSame('/', $d1->getDirname());
+		self::assertSame('/', $d2->getDirname());
+		self::assertSame('/dir2', $d3->getDirname());
 	}
 
 	public function testPathBuilding(): void
@@ -46,9 +46,9 @@ class DirectoryTest extends TestCase
 		$root->addDirectory($d2 = new Directory('dir2', time(), 0, 0));
 		$d2->addDirectory($d3 = new Directory('dir3', time(), 0, 0));
 
-		self::assertEquals('/dir1', $d1->getPath());
-		self::assertEquals('/dir2', $d2->getPath());
-		self::assertEquals('/dir2/dir3', $d3->getPath());
+		self::assertSame('/dir1', $d1->getPath());
+		self::assertSame('/dir2', $d2->getPath());
+		self::assertSame('/dir2/dir3', $d3->getPath());
 	}
 
 	public function testChildAtReturnsCorrectNode(): void
@@ -58,9 +58,9 @@ class DirectoryTest extends TestCase
 		$root->addDirectory($d2 = new Directory('dir2', time(), 0, 0));
 		$root->addFile($f1 = new File('file1', time(), 0, 0));
 
-		self::assertEquals($d1, $root->getChild('dir1'));
-		self::assertEquals($d2, $root->getChild('dir2'));
-		self::assertEquals($f1, $root->getChild('file1'));
+		self::assertSame($d1, $root->getChild('dir1'));
+		self::assertSame($d2, $root->getChild('dir2'));
+		self::assertSame($f1, $root->getChild('file1'));
 	}
 
 	public function testChildAtThrowsNotFoundWhenInvalidElementRequested(): void
@@ -79,7 +79,7 @@ class DirectoryTest extends TestCase
 		$root->addDirectory(new Directory('dir1', time(), 0, 0));
 		$root->addDirectory(new Directory('dir2', time(), 0, 0));
 
-		self::assertEquals(2, $root->getSize());
+		self::assertSame(2, $root->getSize());
 	}
 
 	public function testThrowsWhenFileNameClashes(): void

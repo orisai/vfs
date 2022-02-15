@@ -14,19 +14,19 @@ final class RootTest extends TestCase
 	public function testBaseName(): void
 	{
 		$root = new RootDirectory(time(), 0, 0);
-		self::assertEquals('/', $root->getBasename());
+		self::assertSame('/', $root->getBasename());
 	}
 
 	public function testPath(): void
 	{
 		$root = new RootDirectory(time(), 0, 0);
-		self::assertEquals('/', $root->getPath());
+		self::assertSame('/', $root->getPath());
 	}
 
 	public function testDirname(): void
 	{
 		$root = new RootDirectory(time(), 0, 0);
-		self::assertEquals('', $root->getDirname());
+		self::assertNull($root->getDirname());
 	}
 
 	public function testThrowsWhenTryingToSetParent(): void
@@ -43,14 +43,14 @@ final class RootTest extends TestCase
 	{
 		$root = new RootDirectory(time(), 0, 0);
 
-		self::assertEquals('/', $root, 'No scheme when one is set');
+		self::assertSame('/', (string) $root, 'No scheme when one is set');
 	}
 
 	public function testRootPathReturnsWithoutScheme(): void
 	{
 		$root = new RootDirectory(time(), 0, 0);
 
-		self::assertEquals('/', $root);
+		self::assertSame('/', (string) $root);
 	}
 
 }

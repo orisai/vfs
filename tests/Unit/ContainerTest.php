@@ -22,8 +22,8 @@ final class ContainerTest extends TestCase
 		$factory = new Factory();
 		$container = new Container($factory);
 
-		self::assertEquals('/', $container->getRootDirectory()->getBasename());
-		self::assertEquals('/', $container->getRootDirectory()->getPath());
+		self::assertSame('/', $container->getRootDirectory()->getBasename());
+		self::assertSame('/', $container->getRootDirectory()->getPath());
 	}
 
 	public function testNodeAtAddressReturned(): void
@@ -37,7 +37,7 @@ final class ContainerTest extends TestCase
 		$d21->addDirectory($d221 = $factory->createDir('dir2.2.1'));
 		$d221->addFile($file = $factory->createFile('testFile'));
 
-		self::assertEquals($d221, $container->getNodeAt('/dir1.2/dir2.1/dir2.2.1'));
+		self::assertSame($d221, $container->getNodeAt('/dir1.2/dir2.1/dir2.2.1'));
 	}
 
 	public function testHasNodeAtReturnsCorrectly(): void
@@ -68,7 +68,7 @@ final class ContainerTest extends TestCase
 		$container = new Container($factory);
 		$dir = $container->createDir('/dir1/dir2/dir3', true, 0_000);
 
-		self::assertEquals(0_000 | Directory::getStatType(), $dir->getMode());
+		self::assertSame(0_000 | Directory::getStatType(), $dir->getMode());
 	}
 
 	public function testMkdirThrowsWhenNoParent(): void
@@ -93,7 +93,7 @@ final class ContainerTest extends TestCase
 
 		$container->createFile('/file2', 'someData');
 
-		self::assertEquals('someData', $container->getFileAt('/file2')->getData());
+		self::assertSame('someData', $container->getFileAt('/file2')->getData());
 	}
 
 	public function testFileCreationThrowsWhenNoParent(): void
@@ -179,7 +179,7 @@ final class ContainerTest extends TestCase
 
 		self::assertTrue($container->hasNodeAt('/file2'));
 		self::assertFalse($container->hasNodeAt('/file1'));
-		self::assertEquals('file1', $container->getFileAt('/file2')->getData());
+		self::assertSame('file1', $container->getFileAt('/file2')->getData());
 	}
 
 	public function testMovingDirectoryOntoExistingDirectoryOverridesTarget(): void

@@ -15,13 +15,13 @@ final class NodeTest extends TestCase
 	{
 		$file = new File('file', time(), 0, 0);
 
-		self::assertEquals(Node::DEFAULT_MODE | File::getStatType(), $file->getMode());
+		self::assertSame(Node::DEFAULT_MODE | File::getStatType(), $file->getMode());
 
 		$file->setMode(0_200);
-		self::assertEquals(0_200 | File::getStatType(), $file->getMode());
+		self::assertSame(0_200 | File::getStatType(), $file->getMode());
 
 		$file->setMode(0_777);
-		self::assertEquals(0_777 | File::getStatType(), $file->getMode());
+		self::assertSame(0_777 | File::getStatType(), $file->getMode());
 	}
 
 	public function testToStringReturnsPath(): void
@@ -29,7 +29,7 @@ final class NodeTest extends TestCase
 		$dir = new Directory('dir', time(), 0, 0);
 		$dir->addFile($file = new File('file', time(), 0, 0));
 
-		self::assertEquals($file->getPath(), $file, '__toString() invoked and returned path');
+		self::assertSame($file->getPath(), (string) $file, '__toString() invoked and returned path');
 	}
 
 	public function testSizeIsReturned(): void
@@ -37,7 +37,7 @@ final class NodeTest extends TestCase
 		$file = new File('file', time(), 0, 0);
 		$file->setData('1234567890');
 
-		self::assertEquals(10, $file->getSize());
+		self::assertSame(10, $file->getSize());
 	}
 
 }

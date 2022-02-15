@@ -96,10 +96,10 @@ final class StreamWrapperTest extends TestCase
 
 	public function testSchemeStripping(): void
 	{
-		self::assertEquals('/1/2/3/4', StreamWrapper::stripScheme('test://1/2/3/4'));
-		self::assertEquals('/', StreamWrapper::stripScheme('test://'));
-		self::assertEquals('/', StreamWrapper::stripScheme('test:///'));
-		self::assertEquals('/dir', StreamWrapper::stripScheme('test:///dir'));
+		self::assertSame('/1/2/3/4', StreamWrapper::stripScheme('test://1/2/3/4'));
+		self::assertSame('/', StreamWrapper::stripScheme('test://'));
+		self::assertSame('/', StreamWrapper::stripScheme('test:///'));
+		self::assertSame('/dir', StreamWrapper::stripScheme('test:///dir'));
 	}
 
 	public function testContainerIsReturnedFromContext(): void
@@ -170,10 +170,10 @@ final class StreamWrapperTest extends TestCase
 		$path = "$this->scheme://";
 
 		chmod($path, 0_777);
-		self::assertEquals(0_777 | Directory::getStatType(), $root->getMode());
+		self::assertSame(0_777 | Directory::getStatType(), $root->getMode());
 
 		$root->setMode(0_755);
-		self::assertEquals(0_755 | Directory::getStatType(), fileperms($path));
+		self::assertSame(0_755 | Directory::getStatType(), fileperms($path));
 
 		//accessing non existent file should return false
 		self::assertFalse(chmod("$this->scheme://nonExistingFile", 0_777));
@@ -194,7 +194,7 @@ final class StreamWrapperTest extends TestCase
 		);
 
 		chown("$this->scheme://", 'root');
-		self::assertEquals('root', posix_getpwuid(fileowner("$this->scheme://"))['name']);
+		self::assertSame('root', posix_getpwuid(fileowner("$this->scheme://"))['name']);
 	}
 
 	public function testChownById(): void
@@ -212,7 +212,7 @@ final class StreamWrapperTest extends TestCase
 
 		chown("$this->scheme://", 0);
 
-		self::assertEquals(0, fileowner("$this->scheme://"));
+		self::assertSame(0, fileowner("$this->scheme://"));
 	}
 
 	public function testChgrpByName(): void
@@ -235,7 +235,7 @@ final class StreamWrapperTest extends TestCase
 
 		chgrp("$this->scheme://", $group);
 
-		self::assertEquals($group, posix_getgrgid(filegroup("$this->scheme://"))['name']);
+		self::assertSame($group, posix_getgrgid(filegroup("$this->scheme://"))['name']);
 	}
 
 	public function testChgrpById(): void
@@ -257,7 +257,7 @@ final class StreamWrapperTest extends TestCase
 
 		chgrp("$this->scheme://", $group);
 
-		self::assertEquals($group, filegroup("$this->scheme://"));
+		self::assertSame($group, filegroup("$this->scheme://"));
 	}
 
 	public function testMkdir(): void
@@ -273,7 +273,7 @@ final class StreamWrapperTest extends TestCase
 
 		$dir = $container->getNodeAt('/dir2');
 
-		self::assertEquals(0_000 | Directory::getStatType(), $dir->getMode());
+		self::assertSame(0_000 | Directory::getStatType(), $dir->getMode());
 	}
 
 	public function testMkdirCatchesClashes(): void
@@ -283,7 +283,7 @@ final class StreamWrapperTest extends TestCase
 
 		$error = error_get_last();
 
-		self::assertEquals('dir already exists', $error['message']);
+		self::assertSame('dir already exists', $error['message']);
 	}
 
 	public function testMkdirRecursive(): void
@@ -306,33 +306,33 @@ final class StreamWrapperTest extends TestCase
 
 		file_put_contents("$this->scheme://file", 'data');
 
-		self::assertEquals('data', $container->getFileAt('/file')->getData());
+		self::assertSame('data', $container->getFileAt('/file')->getData());
 
 		//long strings
 		file_put_contents("$this->scheme://file2", str_repeat('data ', 5_000));
 
-		self::assertEquals(str_repeat('data ', 5_000), $container->getFileAt('/file2')->getData());
+		self::assertSame(str_repeat('data ', 5_000), $container->getFileAt('/file2')->getData());
 
 		//truncating
 		file_put_contents("$this->scheme://file", 'data2');
 
-		self::assertEquals('data2', $container->getFileAt('/file')->getData());
+		self::assertSame('data2', $container->getFileAt('/file')->getData());
 
 		//appending
 		file_put_contents("$this->scheme://file", 'data3', FILE_APPEND);
 
-		self::assertEquals('data2data3', $container->getFileAt('/file')->getData());
+		self::assertSame('data2data3', $container->getFileAt('/file')->getData());
 
 		$handle = fopen("$this->scheme://file2", 'w');
 
 		fwrite($handle, 'data');
-		self::assertEquals('data', $container->getFileAt('/file2')->getData());
+		self::assertSame('data', $container->getFileAt('/file2')->getData());
 
 		fwrite($handle, '2');
-		self::assertEquals('data2', $container->getFileAt('/file2')->getData(), 'Pointer advanced');
+		self::assertSame('data2', $container->getFileAt('/file2')->getData(), 'Pointer advanced');
 
 		fwrite($handle, 'data', 1);
-		self::assertEquals(
+		self::assertSame(
 			'data2d',
 			$container->getFileAt('/file2')->getData(),
 			'Written with limited length',
@@ -344,11 +344,11 @@ final class StreamWrapperTest extends TestCase
 		$container = StreamWrapper::getContainer($this->scheme);
 		$container->createFile('/file', 'test data');
 
-		self::assertEquals('test data', file_get_contents("$this->scheme://file"));
+		self::assertSame('test data', file_get_contents("$this->scheme://file"));
 
 		//long string
 		$container->createFile('/file2', str_repeat('test data', 5_000));
-		self::assertEquals(str_repeat('test data', 5_000), file_get_contents("$this->scheme://file2"));
+		self::assertSame(str_repeat('test data', 5_000), file_get_contents("$this->scheme://file2"));
 
 		$container->createDir('/dir');
 
@@ -405,7 +405,7 @@ final class StreamWrapperTest extends TestCase
 		$handle = fopen("$this->scheme://file", 'a');
 
 		self::assertIsResource($handle);
-		self::assertEquals('data', $file->getData());
+		self::assertSame('data', $file->getData());
 	}
 
 	public function testCreatingFileWhileOpeningFailsCorrectly(): void
@@ -426,7 +426,7 @@ final class StreamWrapperTest extends TestCase
 		$container = StreamWrapper::getContainer($this->scheme);
 		$container->createFile('/file', '--data--');
 
-		self::assertEquals('data', file_get_contents("$this->scheme://file", false, null, 2, 4));
+		self::assertSame('data', file_get_contents("$this->scheme://file", false, null, 2, 4));
 	}
 
 	public function testFileSeeking(): void
@@ -437,13 +437,13 @@ final class StreamWrapperTest extends TestCase
 		$handle = fopen("$this->scheme://file", 'r');
 
 		fseek($handle, 2);
-		self::assertEquals(2, ftell($handle));
+		self::assertSame(2, ftell($handle));
 
 		fseek($handle, 1, SEEK_CUR);
-		self::assertEquals(3, ftell($handle));
+		self::assertSame(3, ftell($handle));
 
 		fseek($handle, 6, SEEK_END);
-		self::assertEquals(10, ftell($handle), 'End of file + 6 is 10');
+		self::assertSame(10, ftell($handle), 'End of file + 6 is 10');
 	}
 
 	public function testFileTruncating(): void
@@ -456,7 +456,7 @@ final class StreamWrapperTest extends TestCase
 
 		ftruncate($handle, 4);
 
-		self::assertEquals('data', $file->getData());
+		self::assertSame('data', $file->getData());
 	}
 
 	public function testOpeningModesAreHandledCorrectly(): void
@@ -465,34 +465,34 @@ final class StreamWrapperTest extends TestCase
 		$file = $container->createFile('/file', 'data');
 
 		$handle = fopen("$this->scheme://file", 'r');
-		self::assertEquals('data', fread($handle, 4), 'Contents can be read in read mode');
-		self::assertEquals(0, fwrite($handle, '--'), '0 bytes should be written in readonly mode');
+		self::assertSame('data', fread($handle, 4), 'Contents can be read in read mode');
+		self::assertSame(0, fwrite($handle, '--'), '0 bytes should be written in readonly mode');
 
 		$handle = fopen("$this->scheme://file", 'r+');
-		self::assertEquals('data', fread($handle, 4), 'Contents can be read in extended read mode');
-		self::assertEquals(2, fwrite($handle, '--'), '2 bytes should be written in extended readonly mode');
+		self::assertSame('data', fread($handle, 4), 'Contents can be read in extended read mode');
+		self::assertSame(2, fwrite($handle, '--'), '2 bytes should be written in extended readonly mode');
 
 		$handle = fopen("$this->scheme://file", 'w');
-		self::assertEquals(4, fwrite($handle, 'data'), '4 bytes written in writeonly mode');
+		self::assertSame(4, fwrite($handle, 'data'), '4 bytes written in writeonly mode');
 		fseek($handle, 0);
 		self::assertEmpty(fread($handle, 4), 'No bytes read in write only mode');
 
 		$handle = fopen("$this->scheme://file", 'w+');
-		self::assertEquals(4, fwrite($handle, 'data'), '4 bytes written in extended writeonly mode');
+		self::assertSame(4, fwrite($handle, 'data'), '4 bytes written in extended writeonly mode');
 		fseek($handle, 0);
-		self::assertEquals('data', fread($handle, 4), 'Bytes read in extended write only mode');
+		self::assertSame('data', fread($handle, 4), 'Bytes read in extended write only mode');
 
 		$file->setData('data');
 
 		$handle = fopen("$this->scheme://file", 'a');
-		self::assertEquals(4, fwrite($handle, 'data'), '4 bytes written in append mode');
+		self::assertSame(4, fwrite($handle, 'data'), '4 bytes written in append mode');
 		fseek($handle, 0);
 		self::assertEmpty(fread($handle, 4), 'No bytes read in append mode');
 
 		$handle = fopen("$this->scheme://file", 'a+');
-		self::assertEquals(4, fwrite($handle, 'data'), '4 bytes written in extended append mode');
+		self::assertSame(4, fwrite($handle, 'data'), '4 bytes written in extended append mode');
 		fseek($handle, 0);
-		self::assertEquals('datadata', fread($handle, 8), 'Bytes read in extended append mode');
+		self::assertSame('datadata', fread($handle, 8), 'Bytes read in extended append mode');
 	}
 
 	public function testFileTimesAreModifiedCorrectly(): void
@@ -514,8 +514,8 @@ final class StreamWrapperTest extends TestCase
 		$stat = stat("$this->scheme://file");
 
 		self::assertNotEquals(10, $stat['atime'], 'Access time has changed after read');
-		self::assertEquals(10, $stat['mtime'], 'Modification time has not changed after read');
-		self::assertEquals(10, $stat['ctime'], 'inode change time has not changed after read');
+		self::assertSame(10, $stat['mtime'], 'Modification time has not changed after read');
+		self::assertSame(10, $stat['ctime'], 'inode change time has not changed after read');
 
 		$file->setAccessTime(10);
 		$file->setModificationTime(10);
@@ -524,7 +524,7 @@ final class StreamWrapperTest extends TestCase
 		file_put_contents("$this->scheme://file", 'data');
 		$stat = stat("$this->scheme://file");
 
-		self::assertEquals(10, $stat['atime'], 'Access time has not changed after write');
+		self::assertSame(10, $stat['atime'], 'Access time has not changed after write');
 		self::assertNotEquals(10, $stat['mtime'], 'Modification time has changed after write');
 		self::assertNotEquals(10, $stat['ctime'], 'inode change time has changed after write');
 
@@ -535,8 +535,8 @@ final class StreamWrapperTest extends TestCase
 		chmod("$this->scheme://file", 0_777);
 		$stat = stat("$this->scheme://file");
 
-		self::assertEquals(10, $stat['atime'], 'Access time has not changed after inode change');
-		self::assertEquals(10, $stat['mtime'], 'Modification time has not changed after inode change');
+		self::assertSame(10, $stat['atime'], 'Access time has not changed after inode change');
+		self::assertSame(10, $stat['mtime'], 'Modification time has not changed after inode change');
 		self::assertNotEquals(10, $stat['ctime'], 'inode change time has changed after inode change');
 
 		$file->setAccessTime(10);
@@ -548,9 +548,9 @@ final class StreamWrapperTest extends TestCase
 		fopen("$this->scheme://file", 'r');
 		$stat = stat("$this->scheme://file");
 
-		self::assertEquals(10, $stat['atime'], 'Access time has not changed after opening for reading');
-		self::assertEquals(10, $stat['mtime'], 'Modification time has not changed after opening for reading');
-		self::assertEquals(10, $stat['ctime'], 'inode change time has not changed after opening for reading');
+		self::assertSame(10, $stat['atime'], 'Access time has not changed after opening for reading');
+		self::assertSame(10, $stat['mtime'], 'Modification time has not changed after opening for reading');
+		self::assertSame(10, $stat['ctime'], 'inode change time has not changed after opening for reading');
 
 		$file->setAccessTime(20);
 		$file->setModificationTime(20);
@@ -559,7 +559,7 @@ final class StreamWrapperTest extends TestCase
 		fopen("$this->scheme://file", 'w');
 		$stat = stat("$this->scheme://file");
 
-		self::assertEquals(20, $stat['atime'], 'Access time has not changed after opening for writing');
+		self::assertSame(20, $stat['atime'], 'Access time has not changed after opening for writing');
 		self::assertNotEquals(20, $stat['mtime'], 'Modification time has changed after opnening for writing');
 		self::assertNotEquals(20, $stat['ctime'], 'inode change time has changed after opnening for writing');
 	}
@@ -605,9 +605,9 @@ final class StreamWrapperTest extends TestCase
 
 		touch($path, $time, $atime);
 
-		self::assertEquals($time, filectime($path));
-		self::assertEquals($time, filemtime($path));
-		self::assertEquals($atime, fileatime($path));
+		self::assertSame($time, filectime($path));
+		self::assertSame($time, filemtime($path));
+		self::assertSame($atime, fileatime($path));
 	}
 
 	public function testRenamesMovesFileCorrectly(): void
@@ -619,7 +619,7 @@ final class StreamWrapperTest extends TestCase
 
 		self::assertTrue($container->hasNodeAt('/file2'));
 		self::assertFalse($container->hasNodeAt('/file'));
-		self::assertEquals('data', $container->getFileAt('/file2')->getData());
+		self::assertSame('data', $container->getFileAt('/file2')->getData());
 	}
 
 	public function testRenameReturnsCorrectWarnings(): void
@@ -862,13 +862,13 @@ final class StreamWrapperTest extends TestCase
 		$wr = new StreamWrapper();
 		$wr->dir_opendir("$this->scheme://", STREAM_BUFFER_NONE);
 
-		self::assertEquals('dir1', $wr->dir_readdir());
-		self::assertEquals('dir2', $wr->dir_readdir());
-		self::assertEquals('dir3', $wr->dir_readdir());
+		self::assertSame('dir1', $wr->dir_readdir());
+		self::assertSame('dir2', $wr->dir_readdir());
+		self::assertSame('dir3', $wr->dir_readdir());
 		self::assertFalse($wr->dir_readdir());
 
 		$wr->dir_rewinddir();
-		self::assertEquals('dir1', $wr->dir_readdir(), 'Directory rewound');
+		self::assertSame('dir1', $wr->dir_readdir(), 'Directory rewound');
 	}
 
 	public function testDirectoryIterationWithDirectoryIterator(): void
@@ -884,7 +884,7 @@ final class StreamWrapperTest extends TestCase
 			$result[] = $fileInfo->getBasename();
 		}
 
-		self::assertEquals(['dir1', 'dir2', 'dir3'], $result, 'All directories found');
+		self::assertSame(['dir1', 'dir2', 'dir3'], $result, 'All directories found');
 	}
 
 	public function testStreamOpenDoesNotOpenDirectoriesForWriting(): void
@@ -1386,7 +1386,7 @@ final class StreamWrapperTest extends TestCase
 		);
 
 		lchown("$this->scheme://dir/link", 'root');
-		self::assertEquals('root', posix_getpwuid(fileowner("$this->scheme://dir/link"))['name']);
+		self::assertSame('root', posix_getpwuid(fileowner("$this->scheme://dir/link"))['name']);
 	}
 
 	public function testLchgrp(): void
@@ -1414,7 +1414,7 @@ final class StreamWrapperTest extends TestCase
 
 		chgrp("$this->scheme://dir/link", $group);
 
-		self::assertEquals($group, posix_getgrgid(filegroup("$this->scheme://dir/link"))['name']);
+		self::assertSame($group, posix_getgrgid(filegroup("$this->scheme://dir/link"))['name']);
 	}
 
 	public function testFileCopy(): void
@@ -1426,7 +1426,7 @@ final class StreamWrapperTest extends TestCase
 
 		self::assertFileExists("$this->scheme://file2");
 
-		self::assertEquals('data', $container->getFileAt('/file2')->getData());
+		self::assertSame('data', $container->getFileAt('/file2')->getData());
 	}
 
 	public function testLinkCopyCreatesHardCopyOfFile(): void
@@ -1438,7 +1438,7 @@ final class StreamWrapperTest extends TestCase
 		copy("$this->scheme://link", "$this->scheme://file2");
 
 		self::assertFileExists("$this->scheme://file2");
-		self::assertEquals('data', $container->getFileAt('/file2')->getData());
+		self::assertSame('data', $container->getFileAt('/file2')->getData());
 	}
 
 	public function testLinkReading(): void
@@ -1447,7 +1447,7 @@ final class StreamWrapperTest extends TestCase
 		$container->createFile('/file', 'data');
 		$container->createLink('/link', '/file');
 
-		self::assertEquals('data', file_get_contents("$this->scheme://link"));
+		self::assertSame('data', file_get_contents("$this->scheme://link"));
 	}
 
 	public function testLinkWriting(): void
@@ -1458,7 +1458,7 @@ final class StreamWrapperTest extends TestCase
 
 		file_put_contents("$this->scheme://link", 'data');
 
-		self::assertEquals('data', file_get_contents("$this->scheme://link"));
+		self::assertSame('data', file_get_contents("$this->scheme://link"));
 	}
 
 	public function testChmodViaLink(): void
@@ -1590,7 +1590,7 @@ final class StreamWrapperTest extends TestCase
 		$container = StreamWrapper::getContainer($this->scheme);
 		$file = "$this->scheme://{$container->createFile('/file', '12345')->getPath()}";
 
-		self::assertEquals(5, filesize($file));
+		self::assertSame(5, filesize($file));
 	}
 
 	public function testRmdirAfterUrlStatCall(): void
@@ -1630,7 +1630,7 @@ final class StreamWrapperTest extends TestCase
 
 		$finfo = new finfo(FILEINFO_MIME_TYPE);
 
-		self::assertEquals('image/gif', $finfo->file("$this->scheme://file.gif"));
+		self::assertSame('image/gif', $finfo->file("$this->scheme://file.gif"));
 	}
 
 	public function testRequire(): void
