@@ -44,7 +44,6 @@ final class RootTest extends TestCase
 		$root = new RootDirectory(time(), 0, 0);
 
 		self::assertEquals('/', $root, 'No scheme when one is set');
-
 	}
 
 	public function testRootPathReturnsWithoutScheme(): void
@@ -52,7 +51,6 @@ final class RootTest extends TestCase
 		$root = new RootDirectory(time(), 0, 0);
 
 		self::assertEquals('/', $root);
-
 	}
 
 }

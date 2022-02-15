@@ -24,7 +24,6 @@ final class ContainerTest extends TestCase
 
 		self::assertEquals('/', $container->getRootDirectory()->getBasename());
 		self::assertEquals('/', $container->getRootDirectory()->getPath());
-
 	}
 
 	public function testNodeAtAddressReturned(): void
@@ -39,7 +38,6 @@ final class ContainerTest extends TestCase
 		$d221->addFile($file = $factory->createFile('testFile'));
 
 		self::assertEquals($d221, $container->getNodeAt('/dir1.2/dir2.1/dir2.2.1'));
-
 	}
 
 	public function testHasNodeAtReturnsCorrectly(): void
@@ -50,7 +48,6 @@ final class ContainerTest extends TestCase
 
 		self::assertTrue($container->hasNodeAt('/dir1.1'));
 		self::assertFalse($container->hasNodeAt('/dir'));
-
 	}
 
 	public function testDirectoryCreation(): void
@@ -72,7 +69,6 @@ final class ContainerTest extends TestCase
 		$dir = $container->createDir('/dir1/dir2/dir3', true, 0_000);
 
 		self::assertEquals(0_000 | Directory::getStatType(), $dir->getMode());
-
 	}
 
 	public function testMkdirThrowsWhenNoParent(): void
@@ -82,7 +78,6 @@ final class ContainerTest extends TestCase
 		$factory = new Factory();
 		$container = new Container($factory);
 		$container->createDir('/dir1/dir2');
-
 	}
 
 	public function testFileCreation(): void
@@ -99,7 +94,6 @@ final class ContainerTest extends TestCase
 		$container->createFile('/file2', 'someData');
 
 		self::assertEquals('someData', $container->getFileAt('/file2')->getData());
-
 	}
 
 	public function testFileCreationThrowsWhenNoParent(): void
@@ -110,7 +104,6 @@ final class ContainerTest extends TestCase
 		$container = new Container($factory);
 
 		$container->createFile('/dir/file');
-
 	}
 
 	public function testFileCreationThrowsWhenTryingToOverride(): void
@@ -123,7 +116,6 @@ final class ContainerTest extends TestCase
 		$this->expectException(RuntimeException::class);
 
 		$container->createFile('/file');
-
 	}
 
 	public function testMovingFilesWithinParent(): void
@@ -155,7 +147,6 @@ final class ContainerTest extends TestCase
 		self::assertFalse($container->hasNodeAt('/dir1'), 'Directory does not exist at old location');
 		self::assertTrue($container->hasNodeAt('/dirMoved/dir11'), 'Directory child of type Dir moved');
 		self::assertTrue($container->hasNodeAt('/dirMoved/file'), 'Directory child of type File moved');
-
 	}
 
 	public function testMovingToDifferentParent(): void
@@ -216,7 +207,6 @@ final class ContainerTest extends TestCase
 		$this->expectExceptionMessage('Can\'t override non empty directory.');
 
 		$container->move('/dir1', '/dir2');
-
 	}
 
 	public function testMovingDirectoryOntoExistingFileThrows(): void
@@ -230,7 +220,6 @@ final class ContainerTest extends TestCase
 		$this->expectExceptionMessage('Can\'t move.');
 
 		$container->move('/dir1', '/file2');
-
 	}
 
 	public function testMovingFileOntoExistingDirectoryThrows(): void
@@ -244,7 +233,6 @@ final class ContainerTest extends TestCase
 		$this->expectExceptionMessage('Can\'t move.');
 
 		$container->move('/file2', '/dir1');
-
 	}
 
 	public function testMovingFileOntoInvalidPathWithFileParentThrows(): void
@@ -257,7 +245,6 @@ final class ContainerTest extends TestCase
 		$this->expectException(PathIsNotADirectory::class);
 
 		$container->move('/file1', '/file2/file1');
-
 	}
 
 	public function testRemoveDeletesNodeFromParent(): void
@@ -297,7 +284,6 @@ final class ContainerTest extends TestCase
 		$container->createLink('/link', '/file');
 
 		self::assertInstanceOf(Link::class, $container->getNodeAt('/link'));
-
 	}
 
 	public function testLinkCreationThrowsWhenTryingToOverride(): void
@@ -311,7 +297,6 @@ final class ContainerTest extends TestCase
 		$this->expectException(RuntimeException::class);
 
 		$container->createLink('/link', '/file');
-
 	}
 
 	public function testCreatingDirectoryOnPathThrowsWhenParentIsAFile(): void

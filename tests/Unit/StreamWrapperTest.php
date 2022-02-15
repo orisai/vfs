@@ -83,7 +83,6 @@ final class StreamWrapperTest extends TestCase
 		parent::setUp();
 		$this->uid = function_exists('posix_getuid') ? posix_getuid() : PermissionHelper::ROOT_ID;
 		$this->gid = function_exists('posix_getgid') ? posix_getgid() : PermissionHelper::ROOT_ID;
-
 	}
 
 	public function testSchemeStripping(): void
@@ -92,7 +91,6 @@ final class StreamWrapperTest extends TestCase
 		self::assertEquals('/', StreamWrapper::stripScheme('test://'));
 		self::assertEquals('/', StreamWrapper::stripScheme('test:///'));
 		self::assertEquals('/dir', StreamWrapper::stripScheme('test:///dir'));
-
 	}
 
 	public function testContainerIsReturnedFromContext(): void
@@ -103,7 +101,6 @@ final class StreamWrapperTest extends TestCase
 		self::assertSame($container, StreamWrapper::getContainer("$scheme://file"));
 		self::assertSame($container, StreamWrapper::getContainer("$scheme://"));
 		self::assertSame($container, StreamWrapper::getContainer("$scheme:///file"));
-
 	}
 
 	public function testFileExists(): void
@@ -118,7 +115,6 @@ final class StreamWrapperTest extends TestCase
 		self::assertFileExists("$dir/file");
 		self::assertFileExists($dir);
 		self::assertFileDoesNotExist("$dir/fileNotExist");
-
 	}
 
 	public function testIsDir(): void
@@ -134,7 +130,6 @@ final class StreamWrapperTest extends TestCase
 		self::assertDirectoryExists($dir);
 		self::assertDirectoryExists("$dir/dir");
 		self::assertDirectoryExists("$scheme://");
-
 	}
 
 	public function testIsLink(): void
@@ -182,7 +177,6 @@ final class StreamWrapperTest extends TestCase
 
 		//accessing non existent file should return false
 		self::assertFalse(chmod("$scheme://nonExistingFile", 0_777));
-
 	}
 
 	public function testChownByName(): void
@@ -221,7 +215,6 @@ final class StreamWrapperTest extends TestCase
 		chown("$scheme://", 0);
 
 		self::assertEquals(0, fileowner("$scheme://"));
-
 	}
 
 	public function testChgrpByName(): void
@@ -286,7 +279,6 @@ final class StreamWrapperTest extends TestCase
 		$dir = $container->getNodeAt('/dir2');
 
 		self::assertEquals(0_000 | Directory::getStatType(), $dir->getMode());
-
 	}
 
 	public function testMkdirCatchesClashes(): void
@@ -315,7 +307,6 @@ final class StreamWrapperTest extends TestCase
 		$error = error_get_last();
 
 		self::assertStringMatchesFormat('mkdir: %s: No such file or directory', $error['message']);
-
 	}
 
 	public function testStreamWriting(): void
@@ -356,7 +347,6 @@ final class StreamWrapperTest extends TestCase
 			$container->getFileAt('/file2')->getData(),
 			'Written with limited length',
 		);
-
 	}
 
 	public function testStreamReading(): void
@@ -374,7 +364,6 @@ final class StreamWrapperTest extends TestCase
 		$container->createDir('/dir');
 
 		self::assertEmpty(file_get_contents("$scheme://dir"));
-
 	}
 
 	public function testStreamFlushing(): void
@@ -434,7 +423,6 @@ final class StreamWrapperTest extends TestCase
 
 		self::assertIsResource($handle);
 		self::assertEquals('data', $file->getData());
-
 	}
 
 	public function testCreatingFileWhileOpeningFailsCorrectly(): void
@@ -459,7 +447,6 @@ final class StreamWrapperTest extends TestCase
 		$container->createFile('/file', '--data--');
 
 		self::assertEquals('data', file_get_contents("$scheme://file", false, null, 2, 4));
-
 	}
 
 	public function testFileSeeking(): void
@@ -492,7 +479,6 @@ final class StreamWrapperTest extends TestCase
 		ftruncate($handle, 4);
 
 		self::assertEquals('data', $file->getData());
-
 	}
 
 	public function testOpeningModesAreHandledCorrectly(): void
@@ -530,7 +516,6 @@ final class StreamWrapperTest extends TestCase
 		self::assertEquals(4, fwrite($handle, 'data'), '4 bytes written in extended append mode');
 		fseek($handle, 0);
 		self::assertEquals('datadata', fread($handle, 8), 'Bytes read in extended append mode');
-
 	}
 
 	public function testFileTimesAreModifiedCorrectly(): void
@@ -601,7 +586,6 @@ final class StreamWrapperTest extends TestCase
 		self::assertEquals(20, $stat['atime'], 'Access time has not changed after opening for writing');
 		self::assertNotEquals(20, $stat['mtime'], 'Modification time has changed after opnening for writing');
 		self::assertNotEquals(20, $stat['ctime'], 'inode change time has changed after opnening for writing');
-
 	}
 
 	public function testTouchFileCreation(): void
@@ -635,7 +619,6 @@ final class StreamWrapperTest extends TestCase
 		self::assertNotEquals(20, $stat['atime'], 'Access time has changed after touch');
 		self::assertNotEquals(20, $stat['mtime'], 'Modification time has changed after touch');
 		self::assertNotEquals(20, $stat['ctime'], 'inode change time has changed after touch');
-
 	}
 
 	public function testTouchUpdatesTimes(): void
@@ -704,7 +687,6 @@ final class StreamWrapperTest extends TestCase
 			$error['message'],
 			'Triggers when moving to non existing directory',
 		);
-
 	}
 
 	public function testRenameFailsCorrectly(): void
@@ -760,7 +742,6 @@ final class StreamWrapperTest extends TestCase
 			$error['message'],
 			'Warning when trying to remove directory',
 		);
-
 	}
 
 	public function testRmdirRemovesDirectories(): void
@@ -844,7 +825,6 @@ final class StreamWrapperTest extends TestCase
 			$error['message'],
 			'Stream open errors when flag passed',
 		);
-
 	}
 
 	public function testDirectoryOpensForReading(): void
@@ -930,7 +910,6 @@ final class StreamWrapperTest extends TestCase
 
 		$wr->dir_rewinddir();
 		self::assertEquals('dir1', $wr->dir_readdir(), 'Directory rewound');
-
 	}
 
 	public function testDirectoryIterationWithDirectoryIterator(): void
@@ -948,7 +927,6 @@ final class StreamWrapperTest extends TestCase
 		}
 
 		self::assertEquals(['dir1', 'dir2', 'dir3'], $result, 'All directories found');
-
 	}
 
 	public function testStreamOpenDoesNotOpenDirectoriesForWriting(): void
@@ -1038,7 +1016,6 @@ final class StreamWrapperTest extends TestCase
 		self::assertTrue($wr->stream_open("$scheme://file", 'w+', 0, $openedPath));
 		self::assertTrue($wr->stream_open("$scheme://file", 'a', 0, $openedPath));
 		self::assertTrue($wr->stream_open("$scheme://file", 'a+', 0, $openedPath));
-
 	}
 
 	public function testTemporaryFileCreatedToReadDirectoriesWithStreamOpenInheritsPermissions(): void
@@ -1197,7 +1174,6 @@ final class StreamWrapperTest extends TestCase
 			'%s: failed to open stream: Permission denied',
 			$error['message'],
 		);
-
 	}
 
 	public function testPermissionsAreCheckedWhenCreatingDirectories(): void
@@ -1341,7 +1317,6 @@ final class StreamWrapperTest extends TestCase
 		self::assertTrue(
 			$wr->stream_metadata("$scheme://$fileName", STREAM_META_GROUP_NAME, 'userGroup'),
 		);
-
 	}
 
 	public function testChownAndChgrpNotAllowedIfNotRoot(): void
@@ -1469,7 +1444,6 @@ final class StreamWrapperTest extends TestCase
 
 		lchown("$scheme://dir/link", 'root');
 		self::assertEquals('root', posix_getpwuid(fileowner("$scheme://dir/link"))['name']);
-
 	}
 
 	public function testLchgrp(): void
@@ -1512,7 +1486,6 @@ final class StreamWrapperTest extends TestCase
 		self::assertFileExists("$scheme://file2");
 
 		self::assertEquals('data', $container->getFileAt('/file2')->getData());
-
 	}
 
 	public function testLinkCopyCreatesHardCopyOfFile(): void
@@ -1526,7 +1499,6 @@ final class StreamWrapperTest extends TestCase
 
 		self::assertFileExists("$scheme://file2");
 		self::assertEquals('data', $container->getFileAt('/file2')->getData());
-
 	}
 
 	public function testLinkReading(): void
@@ -1549,7 +1521,6 @@ final class StreamWrapperTest extends TestCase
 		file_put_contents("$scheme://link", 'data');
 
 		self::assertEquals('data', file_get_contents("$scheme://link"));
-
 	}
 
 	public function testChmodViaLink(): void
@@ -1570,7 +1541,6 @@ final class StreamWrapperTest extends TestCase
 		self::assertTrue(is_readable($name));
 		self::assertTrue(is_writable($name));
 		self::assertTrue(is_executable($name));
-
 	}
 
 	public function testIsExecutableReturnsCorrectly(): void
@@ -1739,7 +1709,6 @@ final class StreamWrapperTest extends TestCase
 		$finfo = new finfo(FILEINFO_MIME_TYPE);
 
 		self::assertEquals('image/gif', $finfo->file("$scheme://file.gif"));
-
 	}
 
 	public function testRequire(): void

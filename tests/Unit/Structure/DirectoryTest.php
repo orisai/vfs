@@ -37,7 +37,6 @@ class DirectoryTest extends TestCase
 		self::assertEquals('/', $d1->getDirname());
 		self::assertEquals('/', $d2->getDirname());
 		self::assertEquals('/dir2', $d3->getDirname());
-
 	}
 
 	public function testPathBuilding(): void
@@ -50,7 +49,6 @@ class DirectoryTest extends TestCase
 		self::assertEquals('/dir1', $d1->getPath());
 		self::assertEquals('/dir2', $d2->getPath());
 		self::assertEquals('/dir2/dir3', $d3->getPath());
-
 	}
 
 	public function testChildAtReturnsCorrectNode(): void
@@ -91,7 +89,6 @@ class DirectoryTest extends TestCase
 
 		$this->expectException(PathAlreadyExists::class);
 		$root->addDirectory(new Directory('dir1', time(), 0, 0));
-
 	}
 
 	public function testRemove(): void

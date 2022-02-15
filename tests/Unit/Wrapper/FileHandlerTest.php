@@ -71,7 +71,6 @@ final class FileHandlerTest extends TestCase
 
 		$handler->position(2);
 		self::assertTrue($handler->isAtEof());
-
 	}
 
 	public function testTruncateRemovesDataAndResetsPointer(): void
@@ -92,7 +91,6 @@ final class FileHandlerTest extends TestCase
 		$handler->truncate(4);
 		self::assertEquals(0, $handler->position());
 		self::assertEquals('data', $file->getData());
-
 	}
 
 	public function testOffsetPositionMovesPointerCorrectly(): void
@@ -107,7 +105,6 @@ final class FileHandlerTest extends TestCase
 
 		$handler->offsetPosition(2);
 		self::assertEquals(4, $handler->position());
-
 	}
 
 }

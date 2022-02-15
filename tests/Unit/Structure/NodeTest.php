@@ -22,7 +22,6 @@ final class NodeTest extends TestCase
 
 		$file->setMode(0_777);
 		self::assertEquals(0_777 | File::getStatType(), $file->getMode());
-
 	}
 
 	public function testToStringReturnsPath(): void
@@ -31,7 +30,6 @@ final class NodeTest extends TestCase
 		$dir->addFile($file = new File('file', time(), 0, 0));
 
 		self::assertEquals($file->getPath(), $file, '__toString() invoked and returned path');
-
 	}
 
 	public function testSizeIsReturned(): void

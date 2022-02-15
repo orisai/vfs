@@ -115,7 +115,6 @@ final class PermissionHelperTest extends TestCase
 		$file->setMode(0_006);
 		self::assertTrue($ph->worldCanRead($file), 'world can read with 0006');
 		self::assertTrue($ph->worldCanWrite($file), 'world can read with 0006');
-
 	}
 
 	public function testIsReadable(): void

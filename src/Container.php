@@ -216,7 +216,6 @@ final class Container
 		$toParent->addChild($fromNode);
 
 		$this->remove($fromPath, true);
-
 	}
 
 	/**
