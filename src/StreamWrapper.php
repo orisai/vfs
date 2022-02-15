@@ -11,7 +11,7 @@ use Orisai\VFS\Structure\Link;
 use Orisai\VFS\Structure\RootDirectory;
 use Orisai\VFS\Wrapper\DirectoryHandler;
 use Orisai\VFS\Wrapper\FileHandler;
-use Orisai\VFS\Wrapper\PermissionHelper;
+use Orisai\VFS\Wrapper\PermissionChecker;
 use RuntimeException;
 use function array_merge;
 use function array_values;
@@ -148,8 +148,8 @@ final class StreamWrapper
 			}
 
 			$parent = $container->getDirectoryAt(dirname($path));
-			$permissionHelper = $container->getPermissionHelper();
-			if (!$permissionHelper->isWritable($parent)) {
+			$permissionChecker = $container->getPermissionChecker();
+			if (!$permissionChecker->isWritable($parent)) {
 				return $accessDeniedError();
 			}
 
@@ -178,24 +178,24 @@ final class StreamWrapper
 			$file->setGroup($dir->getGroup());
 		}
 
-		$permissionHelper = $container->getPermissionHelper();
+		$permissionChecker = $container->getPermissionChecker();
 
 		$this->currentFile = new FileHandler($file);
 
 		if ($extended) {
-			if (!$permissionHelper->isReadable($file) || !$permissionHelper->isWritable($file)) {
+			if (!$permissionChecker->isReadable($file) || !$permissionChecker->isWritable($file)) {
 				return $accessDeniedError();
 			}
 
 			$this->currentFile->setReadWriteMode();
 		} elseif ($readMode) {
-			if (!$permissionHelper->isReadable($file)) {
+			if (!$permissionChecker->isReadable($file)) {
 				return $accessDeniedError();
 			}
 
 			$this->currentFile->setReadOnlyMode();
 		} else { // a or w are for write only
-			if (!$permissionHelper->isWritable($file)) {
+			if (!$permissionChecker->isWritable($file)) {
 				return $accessDeniedError();
 			}
 
@@ -298,9 +298,9 @@ final class StreamWrapper
 
 			$node = $container->getNodeAt($strippedPath);
 
-			$permissionHelper = $container->getPermissionHelper();
+			$permissionChecker = $container->getPermissionChecker();
 
-			if (!$permissionHelper->userIsOwner($node) && !$permissionHelper->isWritable($node)) {
+			if (!$permissionChecker->userIsOwner($node) && !$permissionChecker->isWritable($node)) {
 				trigger_error(
 					sprintf('touch: %s: Permission denied', $strippedPath),
 					E_USER_WARNING,
@@ -331,7 +331,7 @@ final class StreamWrapper
 			return false;
 		}
 
-		$permissionHelper = $container->getPermissionHelper();
+		$permissionChecker = $container->getPermissionChecker();
 
 		switch ($option) {
 			case STREAM_META_ACCESS:
@@ -341,7 +341,7 @@ final class StreamWrapper
 					$node = $node->getDestination();
 				}
 
-				if (!$permissionHelper->userIsOwner($node)) {
+				if (!$permissionChecker->userIsOwner($node)) {
 					trigger_error(
 						sprintf('chmod: %s: Permission denied', $strippedPath),
 						E_USER_WARNING,
@@ -357,7 +357,7 @@ final class StreamWrapper
 			case STREAM_META_OWNER_NAME:
 				assert(is_string($value));
 
-				if (!$permissionHelper->userIsRoot() && !$permissionHelper->userIsOwner($node)) {
+				if (!$permissionChecker->userIsRoot() && !$permissionChecker->userIsOwner($node)) {
 					trigger_error(
 						sprintf('chown: %s: Permission denied', $strippedPath),
 						E_USER_WARNING,
@@ -366,7 +366,7 @@ final class StreamWrapper
 					return false;
 				}
 
-				$uid = PermissionHelper::ROOT_ID;
+				$uid = PermissionChecker::ROOT_ID;
 
 				if (function_exists('posix_getpwnam')) {
 					$user = posix_getpwnam($value);
@@ -383,7 +383,7 @@ final class StreamWrapper
 			case STREAM_META_OWNER:
 				assert(is_int($value));
 
-				if (!$permissionHelper->userIsRoot() && !$permissionHelper->userIsOwner($node)) {
+				if (!$permissionChecker->userIsRoot() && !$permissionChecker->userIsOwner($node)) {
 					trigger_error(
 						sprintf('chown: %s: Permission denied', $strippedPath),
 						E_USER_WARNING,
@@ -399,7 +399,7 @@ final class StreamWrapper
 			case STREAM_META_GROUP_NAME:
 				assert(is_string($value));
 
-				if (!$permissionHelper->userIsRoot() && !$permissionHelper->userIsOwner($node)) {
+				if (!$permissionChecker->userIsRoot() && !$permissionChecker->userIsOwner($node)) {
 					trigger_error(
 						sprintf('chgrp: %s: Permission denied', $strippedPath),
 						E_USER_WARNING,
@@ -408,7 +408,7 @@ final class StreamWrapper
 					return false;
 				}
 
-				$gid = PermissionHelper::ROOT_ID;
+				$gid = PermissionChecker::ROOT_ID;
 
 				if (function_exists('posix_getgrnam')) {
 					$group = posix_getgrnam($value);
@@ -425,7 +425,7 @@ final class StreamWrapper
 			case STREAM_META_GROUP:
 				assert(is_int($value));
 
-				if (!$permissionHelper->userIsRoot() && !$permissionHelper->userIsOwner($node)) {
+				if (!$permissionChecker->userIsRoot() && !$permissionChecker->userIsOwner($node)) {
 					trigger_error(
 						sprintf('chgrp: %s: Permission denied', $strippedPath),
 						E_USER_WARNING,
@@ -607,7 +607,7 @@ final class StreamWrapper
 	public function unlink(string $path): bool
 	{
 		$container = self::getContainer($path);
-		$permissionHelper = $container->getPermissionHelper();
+		$permissionChecker = $container->getPermissionChecker();
 
 		try {
 
@@ -615,7 +615,7 @@ final class StreamWrapper
 
 			$parent = $container->getNodeAt(dirname($path));
 
-			if (!$permissionHelper->isWritable($parent)) {
+			if (!$permissionChecker->isWritable($parent)) {
 				trigger_error(
 					sprintf('rm: %s: Permission denied', $path),
 					E_USER_WARNING,
@@ -652,7 +652,7 @@ final class StreamWrapper
 		$container = self::getContainer($path);
 		$path = self::stripScheme($path);
 		$recursive = (bool) ($options & STREAM_MKDIR_RECURSIVE);
-		$permissionHelper = $container->getPermissionHelper();
+		$permissionChecker = $container->getPermissionChecker();
 
 		try {
 			//need to check all parents for permissions
@@ -660,7 +660,7 @@ final class StreamWrapper
 			while ($parentPath = dirname($parentPath)) {
 				try {
 					$parent = $container->getNodeAt($parentPath);
-					if (!$permissionHelper->isWritable($parent)) {
+					if (!$permissionChecker->isWritable($parent)) {
 						trigger_error(sprintf('mkdir: %s: Permission denied', dirname($path)), E_USER_WARNING);
 
 						return false;
@@ -713,9 +713,9 @@ final class StreamWrapper
 			return false;
 		}
 
-		$permissionHelper = $container->getPermissionHelper();
+		$permissionChecker = $container->getPermissionChecker();
 
-		if (!$permissionHelper->isReadable($dir)) {
+		if (!$permissionChecker->isReadable($dir)) {
 			trigger_error(sprintf('opendir(%s): failed to open dir: Permission denied', $path), E_USER_WARNING);
 
 			return false;
@@ -791,8 +791,8 @@ final class StreamWrapper
 				return false;
 			}
 
-			$permissionHelper = $container->getPermissionHelper();
-			if (!$permissionHelper->isReadable($directory)) {
+			$permissionChecker = $container->getPermissionChecker();
+			if (!$permissionChecker->isReadable($directory)) {
 				trigger_error(
 					sprintf('rmdir: %s: Permission denied', $path),
 					E_USER_WARNING,

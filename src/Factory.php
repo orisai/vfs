@@ -7,7 +7,7 @@ use Orisai\VFS\Structure\File;
 use Orisai\VFS\Structure\Link;
 use Orisai\VFS\Structure\Node;
 use Orisai\VFS\Structure\RootDirectory;
-use Orisai\VFS\Wrapper\PermissionHelper;
+use Orisai\VFS\Wrapper\PermissionChecker;
 use function function_exists;
 use function posix_getgid;
 use function posix_getuid;
@@ -28,8 +28,8 @@ final class Factory
 	 */
 	public function __construct()
 	{
-		$this->uid = function_exists('posix_getuid') ? posix_getuid() : PermissionHelper::ROOT_ID;
-		$this->gid = function_exists('posix_getgid') ? posix_getgid() : PermissionHelper::ROOT_ID;
+		$this->uid = function_exists('posix_getuid') ? posix_getuid() : PermissionChecker::ROOT_ID;
+		$this->gid = function_exists('posix_getgid') ? posix_getgid() : PermissionChecker::ROOT_ID;
 	}
 
 	public function getUid(): int

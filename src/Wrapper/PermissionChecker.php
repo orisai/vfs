@@ -7,7 +7,7 @@ use Orisai\VFS\Structure\Node;
 /**
  * @internal
  */
-final class PermissionHelper
+final class PermissionChecker
 {
 
 	private const MODE_USER_READ = 0_400,

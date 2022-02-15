@@ -10,7 +10,7 @@ use Orisai\VFS\Structure\File;
 use Orisai\VFS\Structure\Link;
 use Orisai\VFS\Structure\Node;
 use Orisai\VFS\Structure\RootDirectory;
-use Orisai\VFS\Wrapper\PermissionHelper;
+use Orisai\VFS\Wrapper\PermissionChecker;
 use RuntimeException;
 use function array_filter;
 use function basename;
@@ -32,13 +32,13 @@ final class Container
 
 	private Factory $factory;
 
-	private PermissionHelper $permissionHelper;
+	private PermissionChecker $permissionChecker;
 
 	public function __construct(Factory $factory)
 	{
 		$this->factory = $factory;
 		$this->root = $factory->createRoot();
-		$this->setPermissionHelper(new PermissionHelper($factory->getUid(), $factory->getGid()));
+		$this->permissionChecker = new PermissionChecker($factory->getUid(), $factory->getGid());
 	}
 
 	public function getFactory(): Factory
@@ -234,14 +234,14 @@ final class Container
 		clearstatcache(true, $path);
 	}
 
-	public function getPermissionHelper(): PermissionHelper
+	public function getPermissionChecker(): PermissionChecker
 	{
-		return $this->permissionHelper;
+		return $this->permissionChecker;
 	}
 
-	public function setPermissionHelper(PermissionHelper $permissionHelper): void
+	public function setPermissionChecker(PermissionChecker $permissionChecker): void
 	{
-		$this->permissionHelper = $permissionHelper;
+		$this->permissionChecker = $permissionChecker;
 	}
 
 }

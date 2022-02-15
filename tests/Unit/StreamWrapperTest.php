@@ -7,7 +7,7 @@ use finfo;
 use Orisai\VFS\StreamWrapper;
 use Orisai\VFS\Structure\Directory;
 use Orisai\VFS\VFS;
-use Orisai\VFS\Wrapper\PermissionHelper;
+use Orisai\VFS\Wrapper\PermissionChecker;
 use PHPUnit\Framework\TestCase;
 use function base64_decode;
 use function chgrp;
@@ -83,8 +83,8 @@ final class StreamWrapperTest extends TestCase
 	public function setUp(): void
 	{
 		parent::setUp();
-		$this->uid = function_exists('posix_getuid') ? posix_getuid() : PermissionHelper::ROOT_ID;
-		$this->gid = function_exists('posix_getgid') ? posix_getgid() : PermissionHelper::ROOT_ID;
+		$this->uid = function_exists('posix_getuid') ? posix_getuid() : PermissionChecker::ROOT_ID;
+		$this->gid = function_exists('posix_getgid') ? posix_getgid() : PermissionChecker::ROOT_ID;
 		$this->scheme = VFS::register();
 	}
 
@@ -189,8 +189,8 @@ final class StreamWrapperTest extends TestCase
 		}
 
 		$container = StreamWrapper::getContainer($this->scheme);
-		$container->setPermissionHelper(
-			new PermissionHelper(PermissionHelper::ROOT_ID, PermissionHelper::ROOT_ID),
+		$container->setPermissionChecker(
+			new PermissionChecker(PermissionChecker::ROOT_ID, PermissionChecker::ROOT_ID),
 		);
 
 		chown("$this->scheme://", 'root');
@@ -206,8 +206,8 @@ final class StreamWrapperTest extends TestCase
 		}
 
 		$container = StreamWrapper::getContainer($this->scheme);
-		$container->setPermissionHelper(
-			new PermissionHelper(PermissionHelper::ROOT_ID, PermissionHelper::ROOT_ID),
+		$container->setPermissionChecker(
+			new PermissionChecker(PermissionChecker::ROOT_ID, PermissionChecker::ROOT_ID),
 		);
 
 		chown("$this->scheme://", 0);
@@ -225,8 +225,8 @@ final class StreamWrapperTest extends TestCase
 		}
 
 		$container = StreamWrapper::getContainer($this->scheme);
-		$container->setPermissionHelper(
-			new PermissionHelper(PermissionHelper::ROOT_ID, PermissionHelper::ROOT_ID),
+		$container->setPermissionChecker(
+			new PermissionChecker(PermissionChecker::ROOT_ID, PermissionChecker::ROOT_ID),
 		);
 
 		//lets workout available group
@@ -248,8 +248,8 @@ final class StreamWrapperTest extends TestCase
 		}
 
 		$container = StreamWrapper::getContainer($this->scheme);
-		$container->setPermissionHelper(
-			new PermissionHelper(PermissionHelper::ROOT_ID, PermissionHelper::ROOT_ID),
+		$container->setPermissionChecker(
+			new PermissionChecker(PermissionChecker::ROOT_ID, PermissionChecker::ROOT_ID),
 		);
 
 		//lets workout available group
@@ -941,8 +941,8 @@ final class StreamWrapperTest extends TestCase
 		$wr = new StreamWrapper();
 
 		$file->setMode(0_000);
-		$file->setUser(PermissionHelper::ROOT_ID);
-		$file->setGroup(PermissionHelper::ROOT_ID);
+		$file->setUser(PermissionChecker::ROOT_ID);
+		$file->setGroup(PermissionChecker::ROOT_ID);
 		self::assertFalse($wr->stream_open("$this->scheme://file", 'r', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://file", 'r+', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://file", 'w', 0, $openedPath));
@@ -952,7 +952,7 @@ final class StreamWrapperTest extends TestCase
 
 		$file->setMode(0_400);
 		$file->setUser($this->uid);
-		$file->setGroup(PermissionHelper::ROOT_ID);
+		$file->setGroup(PermissionChecker::ROOT_ID);
 		self::assertTrue($wr->stream_open("$this->scheme://file", 'r', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://file", 'r+', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://file", 'w', 0, $openedPath));
@@ -962,7 +962,7 @@ final class StreamWrapperTest extends TestCase
 
 		$file->setMode(0_200);
 		$file->setUser($this->uid);
-		$file->setGroup(PermissionHelper::ROOT_ID);
+		$file->setGroup(PermissionChecker::ROOT_ID);
 		self::assertFalse($wr->stream_open("$this->scheme://file", 'r', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://file", 'r+', 0, $openedPath));
 		self::assertTrue($wr->stream_open("$this->scheme://file", 'w', 0, $openedPath));
@@ -972,7 +972,7 @@ final class StreamWrapperTest extends TestCase
 
 		$file->setMode(0_600);
 		$file->setUser($this->uid);
-		$file->setGroup(PermissionHelper::ROOT_ID);
+		$file->setGroup(PermissionChecker::ROOT_ID);
 		self::assertTrue($wr->stream_open("$this->scheme://file", 'r', 0, $openedPath));
 		self::assertTrue($wr->stream_open("$this->scheme://file", 'r+', 0, $openedPath));
 		self::assertTrue($wr->stream_open("$this->scheme://file", 'w', 0, $openedPath));
@@ -990,8 +990,8 @@ final class StreamWrapperTest extends TestCase
 		$wr = new StreamWrapper();
 
 		$file->setMode(0_000);
-		$file->setUser(PermissionHelper::ROOT_ID);
-		$file->setGroup(PermissionHelper::ROOT_ID);
+		$file->setUser(PermissionChecker::ROOT_ID);
+		$file->setGroup(PermissionChecker::ROOT_ID);
 		self::assertFalse($wr->stream_open("$this->scheme://dir", 'r', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://dir", 'r+', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://dir", 'w', 0, $openedPath));
@@ -1001,7 +1001,7 @@ final class StreamWrapperTest extends TestCase
 
 		$file->setMode(0_400);
 		$file->setUser($this->uid);
-		$file->setGroup(PermissionHelper::ROOT_ID);
+		$file->setGroup(PermissionChecker::ROOT_ID);
 		self::assertTrue($wr->stream_open("$this->scheme://dir", 'r', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://dir", 'r+', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://dir", 'w', 0, $openedPath));
@@ -1011,7 +1011,7 @@ final class StreamWrapperTest extends TestCase
 
 		$file->setMode(0_200);
 		$file->setUser($this->uid);
-		$file->setGroup(PermissionHelper::ROOT_ID);
+		$file->setGroup(PermissionChecker::ROOT_ID);
 		self::assertFalse($wr->stream_open("$this->scheme://dir", 'r', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://dir", 'r+', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://dir", 'w', 0, $openedPath));
@@ -1021,7 +1021,7 @@ final class StreamWrapperTest extends TestCase
 
 		$file->setMode(0_600);
 		$file->setUser($this->uid);
-		$file->setGroup(PermissionHelper::ROOT_ID);
+		$file->setGroup(PermissionChecker::ROOT_ID);
 		self::assertTrue($wr->stream_open("$this->scheme://dir", 'r', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://dir", 'r+', 0, $openedPath));
 		self::assertFalse($wr->stream_open("$this->scheme://dir", 'w', 0, $openedPath));
@@ -1039,22 +1039,22 @@ final class StreamWrapperTest extends TestCase
 		$wr = new StreamWrapper();
 
 		$file->setMode(0_000);
-		$file->setUser(PermissionHelper::ROOT_ID);
-		$file->setGroup(PermissionHelper::ROOT_ID);
+		$file->setUser(PermissionChecker::ROOT_ID);
+		$file->setGroup(PermissionChecker::ROOT_ID);
 		self::assertFalse(@$wr->dir_opendir("$this->scheme://dir", STREAM_BUFFER_NONE));
 
 		$file->setMode(0_200);
 		$file->setUser($this->uid);
-		$file->setGroup(PermissionHelper::ROOT_ID);
+		$file->setGroup(PermissionChecker::ROOT_ID);
 		self::assertFalse(@$wr->dir_opendir("$this->scheme://dir", STREAM_BUFFER_NONE));
 
 		$file->setMode(0_400);
 		$file->setUser($this->uid);
-		$file->setGroup(PermissionHelper::ROOT_ID);
+		$file->setGroup(PermissionChecker::ROOT_ID);
 		self::assertTrue(@$wr->stream_open("$this->scheme://dir", 'r', 0, $openedPath));
 
 		$file->setMode(0_040);
-		$file->setUser(PermissionHelper::ROOT_ID);
+		$file->setUser(PermissionChecker::ROOT_ID);
 		$file->setGroup($this->gid);
 		self::assertTrue(@$wr->stream_open("$this->scheme://dir", 'r', 0, $openedPath));
 	}
@@ -1362,8 +1362,8 @@ final class StreamWrapperTest extends TestCase
 		$link = $factory->createLink('link', $directory);
 		$directory->addLink($link);
 
-		$container->setPermissionHelper(
-			new PermissionHelper(PermissionHelper::ROOT_ID, PermissionHelper::ROOT_ID),
+		$container->setPermissionChecker(
+			new PermissionChecker(PermissionChecker::ROOT_ID, PermissionChecker::ROOT_ID),
 		);
 
 		lchown("$this->scheme://dir/link", 'root');
@@ -1385,8 +1385,8 @@ final class StreamWrapperTest extends TestCase
 		$link = $factory->createLink('link', $directory);
 		$directory->addLink($link);
 
-		$container->setPermissionHelper(
-			new PermissionHelper(PermissionHelper::ROOT_ID, PermissionHelper::ROOT_ID),
+		$container->setPermissionChecker(
+			new PermissionChecker(PermissionChecker::ROOT_ID, PermissionChecker::ROOT_ID),
 		);
 
 		//lets workout available group
