@@ -13,3 +13,8 @@ parameters:
 		- message: '#^Call to function file_get_contents\(\) on a separate line has no effect\.$#'
 		  path: ../tests/Unit/StreamWrapperTest.php
 		  count: 1
+
+		# It *should*, we are testing internal behavior
+		- message: '#^Call to static method (.+)\:\:assertFalse\(\) with true and ''(.+)'' will always evaluate to false\.$#'
+		  path: ../tests/Unit/StreamWrapperTest.php
+		  count: 1
