@@ -15,7 +15,7 @@ final class NodeTest extends TestCase
 	{
 		$file = new File('file', time(), 0, 0);
 
-		self::assertSame(Node::DEFAULT_MODE | File::getStatType(), $file->getMode());
+		self::assertSame(Node::DefaultMode | File::getStatType(), $file->getMode());
 
 		$file->setMode(0_200);
 		self::assertSame(0_200 | File::getStatType(), $file->getMode());

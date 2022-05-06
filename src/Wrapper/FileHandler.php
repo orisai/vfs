@@ -16,8 +16,8 @@ use function time;
 final class FileHandler
 {
 
-	private const READ_MODE = 1,
-		WRITE_MODE = 2;
+	private const ReadMode = 1,
+		WriteMode = 2;
 
 	private int $position = 0;
 
@@ -119,27 +119,27 @@ final class FileHandler
 
 	public function setReadOnlyMode(): void
 	{
-		$this->mode = self::READ_MODE;
+		$this->mode = self::ReadMode;
 	}
 
 	public function setReadWriteMode(): void
 	{
-		$this->mode = self::READ_MODE | self::WRITE_MODE;
+		$this->mode = self::ReadMode | self::WriteMode;
 	}
 
 	public function setWriteOnlyMode(): void
 	{
-		$this->mode = self::WRITE_MODE;
+		$this->mode = self::WriteMode;
 	}
 
 	public function isOpenedForWriting(): bool
 	{
-		return (bool) ($this->mode & self::WRITE_MODE);
+		return (bool) ($this->mode & self::WriteMode);
 	}
 
 	public function isOpenedForReading(): bool
 	{
-		return (bool) ($this->mode & self::READ_MODE);
+		return (bool) ($this->mode & self::ReadMode);
 	}
 
 	/**

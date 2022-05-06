@@ -10,11 +10,11 @@ use LogicException;
 final class RootDirectory extends Directory
 {
 
-	private const BASENAME = '/';
+	private const BaseName = '/';
 
 	public function __construct(int $currentTime, int $uid, int $gid)
 	{
-		parent::__construct(self::BASENAME, $currentTime, $uid, $gid);
+		parent::__construct(self::BaseName, $currentTime, $uid, $gid);
 	}
 
 	/**
@@ -29,7 +29,7 @@ final class RootDirectory extends Directory
 
 	public function getPath(): string
 	{
-		return self::BASENAME;
+		return self::BaseName;
 	}
 
 }

@@ -41,7 +41,7 @@ final class PermissionCheckerTest extends TestCase
 		self::assertTrue($checker->userCanRead($file), 'User can read with 0600');
 		self::assertTrue($checker->userCanWrite($file), 'User can read with 0600');
 
-		$file->setUser(PermissionChecker::ROOT_ID);
+		$file->setUser(PermissionChecker::RootId);
 		$file->setMode(0_666);
 
 		self::assertFalse($checker->userCanRead($file), 'User can\'t read without ownership');
@@ -79,7 +79,7 @@ final class PermissionCheckerTest extends TestCase
 		self::assertTrue($checker->groupCanRead($file), 'group can read with 0060');
 		self::assertTrue($checker->groupCanWrite($file), 'group can read with 0060');
 
-		$file->setGroup(PermissionChecker::ROOT_ID);
+		$file->setGroup(PermissionChecker::RootId);
 		$file->setMode(0_666);
 
 		self::assertFalse($checker->groupCanRead($file), 'group can\'t read without ownership');
@@ -124,62 +124,62 @@ final class PermissionCheckerTest extends TestCase
 		$checker = new PermissionChecker(1, 1);
 
 		$file->setMode(0_000);
-		$file->setUser(PermissionChecker::ROOT_ID);
-		$file->setGroup(PermissionChecker::ROOT_ID);
+		$file->setUser(PermissionChecker::RootId);
+		$file->setGroup(PermissionChecker::RootId);
 		self::assertFalse($checker->isReadable($file), 'File is not readable root:root 0000');
 
 		$file->setMode(0_400);
-		$file->setUser(PermissionChecker::ROOT_ID);
-		$file->setGroup(PermissionChecker::ROOT_ID);
+		$file->setUser(PermissionChecker::RootId);
+		$file->setGroup(PermissionChecker::RootId);
 		self::assertFalse($checker->isReadable($file), 'File is not readable root:root 0400');
 
 		$file->setMode(0_040);
-		$file->setUser(PermissionChecker::ROOT_ID);
-		$file->setGroup(PermissionChecker::ROOT_ID);
+		$file->setUser(PermissionChecker::RootId);
+		$file->setGroup(PermissionChecker::RootId);
 		self::assertFalse($checker->isReadable($file), 'File is not readable root:root 0040');
 
 		$file->setMode(0_004);
-		$file->setUser(PermissionChecker::ROOT_ID);
-		$file->setGroup(PermissionChecker::ROOT_ID);
+		$file->setUser(PermissionChecker::RootId);
+		$file->setGroup(PermissionChecker::RootId);
 		self::assertTrue($checker->isReadable($file), 'File is readable root:root 0004');
 
 		$file->setMode(0_000);
 		$file->setUser(1);
-		$file->setGroup(PermissionChecker::ROOT_ID);
+		$file->setGroup(PermissionChecker::RootId);
 		self::assertFalse($checker->isReadable($file), 'File is not readable user:root 0000');
 
 		$file->setMode(0_400);
 		$file->setUser(1);
-		$file->setGroup(PermissionChecker::ROOT_ID);
+		$file->setGroup(PermissionChecker::RootId);
 		self::assertTrue($checker->isReadable($file), 'File is readable user:root 0400');
 
 		$file->setMode(0_040);
 		$file->setUser(1);
-		$file->setGroup(PermissionChecker::ROOT_ID);
+		$file->setGroup(PermissionChecker::RootId);
 		self::assertFalse($checker->isReadable($file), 'File is not readable user:root 0040');
 
 		$file->setMode(0_004);
 		$file->setUser(1);
-		$file->setGroup(PermissionChecker::ROOT_ID);
+		$file->setGroup(PermissionChecker::RootId);
 		self::assertTrue($checker->isReadable($file), 'File is readable user:root 0004');
 
 		$file->setMode(0_000);
-		$file->setUser(PermissionChecker::ROOT_ID);
+		$file->setUser(PermissionChecker::RootId);
 		$file->setGroup(1);
 		self::assertFalse($checker->isReadable($file), 'File is not readable root:user 0000');
 
 		$file->setMode(0_040);
-		$file->setUser(PermissionChecker::ROOT_ID);
+		$file->setUser(PermissionChecker::RootId);
 		$file->setGroup(1);
 		self::assertTrue($checker->isReadable($file), 'File is readable root:user 0040');
 
 		$file->setMode(0_400);
-		$file->setUser(PermissionChecker::ROOT_ID);
+		$file->setUser(PermissionChecker::RootId);
 		$file->setGroup(1);
 		self::assertFalse($checker->isReadable($file), 'File is not readable root:user 0400');
 
 		$file->setMode(0_004);
-		$file->setUser(PermissionChecker::ROOT_ID);
+		$file->setUser(PermissionChecker::RootId);
 		$file->setGroup(1);
 		self::assertTrue($checker->isReadable($file), 'File is readable root:user 0004');
 	}

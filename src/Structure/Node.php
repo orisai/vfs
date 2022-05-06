@@ -8,7 +8,7 @@ namespace Orisai\VFS\Structure;
 abstract class Node
 {
 
-	public const DEFAULT_MODE = 0_755;
+	public const DefaultMode = 0_755;
 
 	private string $basename;
 
@@ -28,7 +28,7 @@ abstract class Node
 
 	public function __construct(string $basename, int $currentTime, int $uid, int $gid)
 	{
-		$this->setMode(self::DEFAULT_MODE);
+		$this->setMode(self::DefaultMode);
 		$this->basename = $basename;
 		$this->atime = $this->mtime = $this->ctime = $currentTime;
 		$this->uid = $uid;

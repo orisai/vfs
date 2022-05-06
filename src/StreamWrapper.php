@@ -366,7 +366,7 @@ final class StreamWrapper
 					return false;
 				}
 
-				$uid = PermissionChecker::ROOT_ID;
+				$uid = PermissionChecker::RootId;
 
 				if (function_exists('posix_getpwnam')) {
 					$user = posix_getpwnam($value);
@@ -408,7 +408,7 @@ final class StreamWrapper
 					return false;
 				}
 
-				$gid = PermissionChecker::ROOT_ID;
+				$gid = PermissionChecker::RootId;
 
 				if (function_exists('posix_getgrnam')) {
 					$group = posix_getgrnam($value);

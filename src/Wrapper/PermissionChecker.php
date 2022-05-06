@@ -10,14 +10,14 @@ use Orisai\VFS\Structure\Node;
 final class PermissionChecker
 {
 
-	private const MODE_USER_READ = 0_400,
-		MODE_USER_WRITE = 0_200,
-		MODE_GROUP_READ = 0_040,
-		MODE_GROUP_WRITE = 0_020,
-		MODE_WORLD_READ = 0_004,
-		MODE_WORLD_WRITE = 0_002;
+	private const ModeUserRead = 0_400,
+		ModeUserWrite = 0_200,
+		ModeGroupRead = 0_040,
+		ModeGroupWrite = 0_020,
+		ModeWorldRead = 0_004,
+		ModeWorldWrite = 0_002;
 
-	public const ROOT_ID = 0;
+	public const RootId = 0;
 
 	private int $uid;
 
@@ -36,12 +36,12 @@ final class PermissionChecker
 
 	public function userCanRead(Node $node): bool
 	{
-		return $this->userIsOwner($node) && ($node->getMode() & self::MODE_USER_READ) !== 0;
+		return $this->userIsOwner($node) && ($node->getMode() & self::ModeUserRead) !== 0;
 	}
 
 	public function userCanWrite(Node $node): bool
 	{
-		return $this->userIsOwner($node) && ($node->getMode() & self::MODE_USER_WRITE) !== 0;
+		return $this->userIsOwner($node) && ($node->getMode() & self::ModeUserWrite) !== 0;
 	}
 
 	public function groupIsOwner(Node $node): bool
@@ -51,22 +51,22 @@ final class PermissionChecker
 
 	public function groupCanRead(Node $node): bool
 	{
-		return $this->groupIsOwner($node) && ($node->getMode() & self::MODE_GROUP_READ) !== 0;
+		return $this->groupIsOwner($node) && ($node->getMode() & self::ModeGroupRead) !== 0;
 	}
 
 	public function groupCanWrite(Node $node): bool
 	{
-		return $this->groupIsOwner($node) && ($node->getMode() & self::MODE_GROUP_WRITE) !== 0;
+		return $this->groupIsOwner($node) && ($node->getMode() & self::ModeGroupWrite) !== 0;
 	}
 
 	public function worldCanRead(Node $node): bool
 	{
-		return ($node->getMode() & self::MODE_WORLD_READ) !== 0;
+		return ($node->getMode() & self::ModeWorldRead) !== 0;
 	}
 
 	public function worldCanWrite(Node $node): bool
 	{
-		return ($node->getMode() & self::MODE_WORLD_WRITE) !== 0;
+		return ($node->getMode() & self::ModeWorldWrite) !== 0;
 	}
 
 	public function isReadable(Node $node): bool
@@ -81,7 +81,7 @@ final class PermissionChecker
 
 	public function userIsRoot(): bool
 	{
-		return $this->uid === self::ROOT_ID;
+		return $this->uid === self::RootId;
 	}
 
 }

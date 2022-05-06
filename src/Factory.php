@@ -28,8 +28,8 @@ final class Factory
 	 */
 	public function __construct()
 	{
-		$this->uid = function_exists('posix_getuid') ? posix_getuid() : PermissionChecker::ROOT_ID;
-		$this->gid = function_exists('posix_getgid') ? posix_getgid() : PermissionChecker::ROOT_ID;
+		$this->uid = function_exists('posix_getuid') ? posix_getuid() : PermissionChecker::RootId;
+		$this->gid = function_exists('posix_getgid') ? posix_getgid() : PermissionChecker::RootId;
 	}
 
 	public function getUid(): int
