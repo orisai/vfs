@@ -2,6 +2,7 @@
 
 namespace Orisai\VFS;
 
+use Exception;
 use Orisai\VFS\Exception\PathAlreadyExists;
 use Orisai\VFS\Exception\PathIsNotADirectory;
 use Orisai\VFS\Exception\PathNotFound;
@@ -31,6 +32,7 @@ use function posix_getgrnam;
 use function posix_getpwnam;
 use function preg_split;
 use function sprintf;
+use function str_ends_with;
 use function str_replace;
 use function str_split;
 use function time;
@@ -39,6 +41,8 @@ use const E_USER_WARNING;
 use const SEEK_CUR;
 use const SEEK_END;
 use const SEEK_SET;
+use const STREAM_CAST_AS_STREAM;
+use const STREAM_CAST_FOR_SELECT;
 use const STREAM_META_ACCESS;
 use const STREAM_META_GROUP;
 use const STREAM_META_GROUP_NAME;
@@ -46,7 +50,14 @@ use const STREAM_META_OWNER;
 use const STREAM_META_OWNER_NAME;
 use const STREAM_META_TOUCH;
 use const STREAM_MKDIR_RECURSIVE;
+use const STREAM_OPTION_BLOCKING;
+use const STREAM_OPTION_READ_BUFFER;
+use const STREAM_OPTION_READ_TIMEOUT;
+use const STREAM_OPTION_WRITE_BUFFER;
 use const STREAM_REPORT_ERRORS;
+use const STREAM_URL_STAT_LINK;
+use const STREAM_URL_STAT_QUIET;
+use const STREAM_USE_PATH;
 
 /**
  * phpcs:disable Generic.NamingConventions.CamelCapsFunctionName.ScopeNotCamelCaps
@@ -56,6 +67,86 @@ use const STREAM_REPORT_ERRORS;
  */
 final class StreamWrapper
 {
+
+	private const CastsAs = [
+		STREAM_CAST_AS_STREAM,
+		STREAM_CAST_FOR_SELECT,
+	];
+
+	private const MetadataOptions = [
+		STREAM_META_TOUCH,
+		STREAM_META_OWNER_NAME,
+		STREAM_META_OWNER,
+		STREAM_META_GROUP_NAME,
+		STREAM_META_GROUP,
+		STREAM_META_ACCESS,
+	];
+
+	private const OpensModes = [
+		'r',
+		'rb',
+		'rt',
+		'r+',
+		'r+b',
+		'r+t',
+		'w',
+		'wb',
+		'wt',
+		'w+',
+		'w+b',
+		'w+t',
+		'a',
+		'ab',
+		'at',
+		'a+',
+		'a+b',
+		'a+t',
+		'x',
+		'xb',
+		'xt',
+		'x+',
+		'x+b',
+		'x+t',
+		'c',
+		'cb',
+		'ct',
+		'c+',
+		'c+b',
+		'c+t',
+		'e',
+		'eb',
+		'et',
+	];
+
+	private const OpensOptions = [
+		0,
+		STREAM_USE_PATH,
+		STREAM_REPORT_ERRORS,
+	];
+
+	private const SeeksWhence = [
+		SEEK_SET,
+		SEEK_CUR,
+		SEEK_END,
+	];
+
+	private const SetOptionOptions = [
+		STREAM_OPTION_BLOCKING,
+		STREAM_OPTION_READ_BUFFER,
+		STREAM_OPTION_READ_TIMEOUT,
+		STREAM_OPTION_WRITE_BUFFER,
+	];
+
+	private const UrlStatsFlags = [
+		0,
+		STREAM_URL_STAT_LINK,
+		STREAM_URL_STAT_QUIET,
+	];
+
+	private const MkdirsOptions = [
+		0,
+		STREAM_MKDIR_RECURSIVE,
+	];
 
 	private ?FileHandler $currentFile;
 
@@ -88,16 +179,220 @@ final class StreamWrapper
 	}
 
 	/**
-	 * @see https://www.php.net/streamwrapper.stream-tell
+	 * @see https://www.php.net/manual/en/streamwrapper.dir-closedir.php
 	 */
-	public function stream_tell(): int
+	public function dir_closedir(): bool
 	{
-		assert($this->currentFile !== null);
+		if ($this->currentDir !== null) {
+			$this->currentDir = null;
 
-		return $this->currentFile->getPosition();
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
+	 * @see https://www.php.net/manual/en/streamwrapper.dir-opendir.php
+	 */
+	public function dir_opendir(string $path, int $options): bool
+	{
+		$container = self::getContainer($path);
+
+		$path = self::stripScheme($path);
+
+		if (!$container->hasNodeAt($path)) {
+			trigger_error(sprintf('opendir(%s): failed to open dir: No such file or directory', $path), E_USER_WARNING);
+
+			return false;
+		}
+
+		try {
+
+			$dir = $container->getDirectoryAt($path);
+
+		} catch (PathIsNotADirectory $e) {
+			trigger_error(sprintf('opendir(%s): failed to open dir: Not a directory', $path), E_USER_WARNING);
+
+			return false;
+		}
+
+		$permissionChecker = $container->getPermissionChecker();
+
+		if (!$permissionChecker->isReadable($dir)) {
+			trigger_error(sprintf('opendir(%s): failed to open dir: Permission denied', $path), E_USER_WARNING);
+
+			return false;
+		}
+
+		$this->currentDir = new DirectoryHandler($dir);
+
+		return true;
+	}
+
+	/**
+	 * @return string|false
+	 *
+	 * @see https://www.php.net/manual/en/streamwrapper.dir-readdir.php
+	 */
+	public function dir_readdir()
+	{
+		assert($this->currentDir !== null);
+
+		$iterator = $this->currentDir->getIterator();
+		if (!$iterator->valid()) {
+			return false;
+		}
+
+		$node = $iterator->current();
+		$iterator->next();
+
+		return $node->getBasename();
+	}
+
+	/**
+	 * @see https://www.php.net/manual/en/streamwrapper.dir-rewinddir.php
+	 */
+	public function dir_rewinddir(): bool
+	{
+		assert($this->currentDir !== null);
+		$this->currentDir->getIterator()->rewind();
+
+		return true;
+	}
+
+	/**
+	 * @phpstan-param int-mask-of<self::MkdirsOptions> $options
+	 *
+	 * @see https://www.php.net/manual/en/streamwrapper.mkdir.php
+	 */
+	public function mkdir(string $path, int $mode, int $options): bool
+	{
+		$container = self::getContainer($path);
+		$path = self::stripScheme($path);
+		$recursive = (bool) ($options & STREAM_MKDIR_RECURSIVE);
+		$permissionChecker = $container->getPermissionChecker();
+
+		try {
+			//need to check all parents for permissions
+			$parentPath = $path;
+			while ($parentPath = dirname($parentPath)) {
+				try {
+					$parent = $container->getNodeAt($parentPath);
+					if (!$permissionChecker->isWritable($parent)) {
+						trigger_error(sprintf('mkdir: %s: Permission denied', dirname($path)), E_USER_WARNING);
+
+						return false;
+					}
+
+					if ($parent instanceof RootDirectory) {
+						break;
+					}
+				} catch (PathNotFound $e) {
+					break; //will sort missing parent below
+				}
+			}
+
+			$container->createDir($path, $recursive, $mode);
+		} catch (PathAlreadyExists $e) {
+			trigger_error($e->getMessage(), E_USER_WARNING);
+
+			return false;
+		} catch (PathNotFound $e) {
+			trigger_error(sprintf('mkdir: %s: No such file or directory', dirname($path)), E_USER_WARNING);
+
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * @see https://www.php.net/manual/en/streamwrapper.rename.php
+	 */
+	public function rename(string $path_from, string $path_to): bool
+	{
+		$container = self::getContainer($path_to);
+		$path_from = self::stripScheme($path_from);
+		$path_to = self::stripScheme($path_to);
+
+		try {
+			$container->move($path_from, $path_to);
+		} catch (PathNotFound $e) {
+			trigger_error(
+				sprintf('mv: rename %s to %s: No such file or directory', $path_from, $path_to),
+				E_USER_WARNING,
+			);
+
+			return false;
+		} catch (RuntimeException $e) {
+			trigger_error(
+				sprintf('mv: rename %s to %s: Not a directory', $path_from, $path_to),
+				E_USER_WARNING,
+			);
+
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * @phpstan-param int-mask-of<self::MkdirsOptions> $options
+	 *
+	 * @see https://www.php.net/manual/en/streamwrapper.rmdir.php
+	 */
+	public function rmdir(string $path, int $options): bool
+	{
+		$container = self::getContainer($path);
+		$path = self::stripScheme($path);
+
+		try {
+			$directory = $container->getNodeAt($path);
+
+			if ($directory instanceof File) {
+				trigger_error(
+					sprintf('Warning: rmdir(%s): Not a directory', $path),
+					E_USER_WARNING,
+				);
+
+				return false;
+			}
+
+			$permissionChecker = $container->getPermissionChecker();
+			if (!$permissionChecker->isReadable($directory)) {
+				trigger_error(
+					sprintf('rmdir: %s: Permission denied', $path),
+					E_USER_WARNING,
+				);
+
+				return false;
+			}
+		} catch (PathNotFound $e) {
+			trigger_error(
+				sprintf('Warning: rmdir(%s): No such file or directory', $path),
+				E_USER_WARNING,
+			);
+
+			return false;
+		}
+
+		if ($directory->getSize() !== 0) {
+			trigger_error(
+				sprintf('Warning: rmdir(%s): Directory not empty', $path),
+				E_USER_WARNING,
+			);
+
+			return false;
+		}
+
+		$container->remove($path, true);
+
+		return true;
+	}
+
+	/**
+	 * @phpstan-param value-of<self::CastsAs> $cast_as
 	 * @return false
 	 *
 	 * @see https://www.php.net/streamwrapper.stream-cast
@@ -113,142 +408,6 @@ final class StreamWrapper
 	public function stream_close(): void
 	{
 		$this->currentFile = null;
-	}
-
-	/**
-	 * @see  https://www.php.net/streamwrapper.stream-open
-	 */
-	public function stream_open(string $path, string $mode, int $options, ?string &$opened_path): bool
-	{
-		$container = self::getContainer($path);
-		$path = self::stripScheme($path);
-
-		$modes = str_split(str_replace('b', '', $mode));
-
-		$accessDeniedError = static function () use ($path, $options): bool {
-			if (($options & STREAM_REPORT_ERRORS) !== 0) {
-				trigger_error(sprintf('fopen(%s): failed to open stream: Permission denied', $path), E_USER_WARNING);
-			}
-
-			return false;
-		};
-
-		$appendMode = in_array('a', $modes, true);
-		$readMode = in_array('r', $modes, true);
-		$writeMode = in_array('w', $modes, true);
-		$extended = in_array('+', $modes, true);
-
-		if (!$container->hasNodeAt($path)) {
-			if ($readMode || !$container->hasNodeAt(dirname($path))) {
-				if (($options & STREAM_REPORT_ERRORS) !== 0) {
-					trigger_error(sprintf('%s: failed to open stream.', $path), E_USER_WARNING);
-				}
-
-				return false;
-			}
-
-			$parent = $container->getDirectoryAt(dirname($path));
-			$permissionChecker = $container->getPermissionChecker();
-			if (!$permissionChecker->isWritable($parent)) {
-				return $accessDeniedError();
-			}
-
-			$parent->addFile($container->getFactory()->createFile(basename($path)));
-		}
-
-		$file = $container->getNodeAt($path);
-
-		if ($file instanceof Link) {
-			$file = $file->getResolvedDestination();
-		}
-
-		if (($extended || $writeMode || $appendMode) && $file instanceof Directory) {
-			if (($options & STREAM_REPORT_ERRORS) !== 0) {
-				trigger_error(sprintf('fopen(%s): failed to open stream: Is a directory', $path), E_USER_WARNING);
-			}
-
-			return false;
-		}
-
-		if ($file instanceof Directory) {
-			$dir = $file;
-			$file = $container->getFactory()->createFile('tmp');
-			$file->setMode($dir->getMode());
-			$file->setUser($dir->getUser());
-			$file->setGroup($dir->getGroup());
-		}
-
-		$permissionChecker = $container->getPermissionChecker();
-
-		$this->currentFile = new FileHandler($file);
-
-		if ($extended) {
-			if (!$permissionChecker->isReadable($file) || !$permissionChecker->isWritable($file)) {
-				return $accessDeniedError();
-			}
-
-			$this->currentFile->setReadWriteMode();
-		} elseif ($readMode) {
-			if (!$permissionChecker->isReadable($file)) {
-				return $accessDeniedError();
-			}
-
-			$this->currentFile->setReadOnlyMode();
-		} else { // a or w are for write only
-			if (!$permissionChecker->isWritable($file)) {
-				return $accessDeniedError();
-			}
-
-			$this->currentFile->setWriteOnlyMode();
-		}
-
-		if ($appendMode) {
-			$this->currentFile->seekToEnd();
-		} elseif ($writeMode) {
-			$this->currentFile->truncate();
-			clearstatcache();
-		}
-
-		$opened_path = $file->getPath();
-
-		return true;
-	}
-
-	/**
-	 * @see https://www.php.net/streamwrapper.stream-write
-	 */
-	public function stream_write(string $data): int
-	{
-		assert($this->currentFile !== null);
-
-		if (!$this->currentFile->isOpenedForWriting()) {
-			return 0;
-		}
-
-		//file access time changes so stat cache needs to be cleared
-		$written = $this->currentFile->write($data);
-		clearstatcache();
-
-		return $written;
-	}
-
-	/**
-	 * @return string|false
-	 *
-	 * @see https://www.php.net/streamwrapper.stream-read
-	 */
-	public function stream_read(int $count)
-	{
-		assert($this->currentFile !== null);
-		if (!$this->currentFile->isOpenedForReading()) {
-			return false;
-		}
-
-		$data = $this->currentFile->read($count);
-		//file access time changes so stat cache needs to be cleared
-		clearstatcache();
-
-		return $data !== '' ? $data : false;
 	}
 
 	/**
@@ -271,7 +430,20 @@ final class StreamWrapper
 	}
 
 	/**
-	 * @param int|string|array<int> $value
+	 * @param Lock::LOCK_* $operation
+	 *
+	 * @see https://www.php.net/manual/en/streamwrapper.stream-lock.php
+	 */
+	public function stream_lock(int $operation): bool
+	{
+		assert($this->currentFile !== null);
+
+		return $this->currentFile->lock($this, $operation);
+	}
+
+	/**
+	 * @param int|string|array<int>                   $value
+	 * @phpstan-param value-of<self::MetadataOptions> $option
 	 *
 	 * @see https://www.php.net/streamwrapper.stream-metadata
 	 */
@@ -446,6 +618,133 @@ final class StreamWrapper
 	}
 
 	/**
+	 * @phpstan-param value-of<self::OpensModes>      $mode
+	 * @phpstan-param int-mask-of<self::OpensOptions> $options
+	 *
+	 * @see https://www.php.net/streamwrapper.stream-open
+	 */
+	public function stream_open(string $path, string $mode, int $options, ?string &$opened_path): bool
+	{
+		$container = self::getContainer($path);
+		$path = self::stripScheme($path);
+
+		if (str_ends_with($mode, 't')) {
+			throw new Exception("Windows translation mode 't' is not supported.");
+		}
+
+		$modes = str_split(str_replace('b', '', $mode));
+
+		$accessDeniedError = static function () use ($path, $options): bool {
+			if (($options & STREAM_REPORT_ERRORS) !== 0) {
+				trigger_error(sprintf('fopen(%s): failed to open stream: Permission denied', $path), E_USER_WARNING);
+			}
+
+			return false;
+		};
+
+		$appendMode = in_array('a', $modes, true);
+		$readMode = in_array('r', $modes, true);
+		$writeMode = in_array('w', $modes, true);
+		$extended = in_array('+', $modes, true);
+
+		if (!$container->hasNodeAt($path)) {
+			if ($readMode || !$container->hasNodeAt(dirname($path))) {
+				if (($options & STREAM_REPORT_ERRORS) !== 0) {
+					trigger_error(sprintf('%s: failed to open stream.', $path), E_USER_WARNING);
+				}
+
+				return false;
+			}
+
+			$parent = $container->getDirectoryAt(dirname($path));
+			$permissionChecker = $container->getPermissionChecker();
+			if (!$permissionChecker->isWritable($parent)) {
+				return $accessDeniedError();
+			}
+
+			$parent->addFile($container->getFactory()->createFile(basename($path)));
+		}
+
+		$file = $container->getNodeAt($path);
+
+		if ($file instanceof Link) {
+			$file = $file->getResolvedDestination();
+		}
+
+		if (($extended || $writeMode || $appendMode) && $file instanceof Directory) {
+			if (($options & STREAM_REPORT_ERRORS) !== 0) {
+				trigger_error(sprintf('fopen(%s): failed to open stream: Is a directory', $path), E_USER_WARNING);
+			}
+
+			return false;
+		}
+
+		if ($file instanceof Directory) {
+			$dir = $file;
+			$file = $container->getFactory()->createFile('tmp');
+			$file->setMode($dir->getMode());
+			$file->setUser($dir->getUser());
+			$file->setGroup($dir->getGroup());
+		}
+
+		$permissionChecker = $container->getPermissionChecker();
+
+		$this->currentFile = new FileHandler($file);
+
+		if ($extended) {
+			if (!$permissionChecker->isReadable($file) || !$permissionChecker->isWritable($file)) {
+				return $accessDeniedError();
+			}
+
+			$this->currentFile->setReadWriteMode();
+		} elseif ($readMode) {
+			if (!$permissionChecker->isReadable($file)) {
+				return $accessDeniedError();
+			}
+
+			$this->currentFile->setReadOnlyMode();
+		} else { // a or w are for write only
+			if (!$permissionChecker->isWritable($file)) {
+				return $accessDeniedError();
+			}
+
+			$this->currentFile->setWriteOnlyMode();
+		}
+
+		if ($appendMode) {
+			$this->currentFile->seekToEnd();
+		} elseif ($writeMode) {
+			$this->currentFile->truncate();
+			clearstatcache();
+		}
+
+		$opened_path = $file->getPath();
+
+		return true;
+	}
+
+	/**
+	 * @return string|false
+	 *
+	 * @see https://www.php.net/streamwrapper.stream-read
+	 */
+	public function stream_read(int $count)
+	{
+		assert($this->currentFile !== null);
+		if (!$this->currentFile->isOpenedForReading()) {
+			return false;
+		}
+
+		$data = $this->currentFile->read($count);
+		//file access time changes so stat cache needs to be cleared
+		clearstatcache();
+
+		return $data !== '' ? $data : false;
+	}
+
+	/**
+	 * @phpstan-param value-of<self::SeeksWhence> $whence
+	 *
 	 * @see https://www.php.net/manual/en/streamwrapper.stream-seek.php
 	 */
 	public function stream_seek(int $offset, int $whence = SEEK_SET): bool
@@ -470,79 +769,13 @@ final class StreamWrapper
 	}
 
 	/**
-	 * @see https://www.php.net/manual/en/streamwrapper.stream-truncate.php
-	 */
-	public function stream_truncate(int $new_size): bool
-	{
-		assert($this->currentFile !== null);
-
-		$this->currentFile->truncate($new_size);
-		clearstatcache();
-
-		return true;
-	}
-
-	/**
-	 * @phpstan-param Lock::LOCK_* $operation
-	 */
-	public function stream_lock(int $operation): bool
-	{
-		assert($this->currentFile !== null);
-
-		return $this->currentFile->lock($this, $operation);
-	}
-
-	/**
+	 * @phpstan-param value-of<self::SetOptionOptions> $option
+	 *
 	 * @see https://www.php.net/manual/en/streamwrapper.stream-set-option.php
 	 */
 	public function stream_set_option(int $option, int $arg1, int $arg2): bool
 	{
 		return false;
-	}
-
-	/**
-	 * @return array<int|string, int>
-	 *
-	 * @see https://www.php.net/streamwrapper.stream-stat
-	 */
-	public function stream_stat(): array
-	{
-		assert($this->currentFile !== null);
-		$file = $this->currentFile->getFile();
-
-		return array_merge($this->getStatDefault(), [
-			'mode' => $file->getMode(),
-			'uid' => $file->getUser(),
-			'gid' => $file->getGroup(),
-			'atime' => $file->getAccessTime(),
-			'mtime' => $file->getModificationTime(),
-			'ctime' => $file->getChangeTime(),
-			'size' => $file->getSize(),
-		]);
-	}
-
-	/**
-	 * @return array<int|string, int>|false
-	 *
-	 * @see https://www.php.net/stat
-	 */
-	public function url_stat(string $path, int $flags)
-	{
-		try {
-			$file = self::getContainer($path)->getNodeAt(self::stripScheme($path));
-
-			return array_merge($this->getStatDefault(), [
-				'mode' => $file->getMode(),
-				'uid' => $file->getUser(),
-				'gid' => $file->getGroup(),
-				'atime' => $file->getAccessTime(),
-				'mtime' => $file->getModificationTime(),
-				'ctime' => $file->getChangeTime(),
-				'size' => $file->getSize(),
-			]);
-		} catch (PathNotFound $e) {
-			return false;
-		}
 	}
 
 	/**
@@ -572,33 +805,65 @@ final class StreamWrapper
 	}
 
 	/**
-	 * @see https://www.php.net/manual/en/streamwrapper.rename.php
+	 * @return array<int|string, int>
+	 *
+	 * @see https://www.php.net/streamwrapper.stream-stat
 	 */
-	public function rename(string $path_from, string $path_to): bool
+	public function stream_stat(): array
 	{
-		$container = self::getContainer($path_to);
-		$path_from = self::stripScheme($path_from);
-		$path_to = self::stripScheme($path_to);
+		assert($this->currentFile !== null);
+		$file = $this->currentFile->getFile();
 
-		try {
-			$container->move($path_from, $path_to);
-		} catch (PathNotFound $e) {
-			trigger_error(
-				sprintf('mv: rename %s to %s: No such file or directory', $path_from, $path_to),
-				E_USER_WARNING,
-			);
+		return array_merge($this->getStatDefault(), [
+			'mode' => $file->getMode(),
+			'uid' => $file->getUser(),
+			'gid' => $file->getGroup(),
+			'atime' => $file->getAccessTime(),
+			'mtime' => $file->getModificationTime(),
+			'ctime' => $file->getChangeTime(),
+			'size' => $file->getSize(),
+		]);
+	}
 
-			return false;
-		} catch (RuntimeException $e) {
-			trigger_error(
-				sprintf('mv: rename %s to %s: Not a directory', $path_from, $path_to),
-				E_USER_WARNING,
-			);
+	/**
+	 * @see https://www.php.net/streamwrapper.stream-tell
+	 */
+	public function stream_tell(): int
+	{
+		assert($this->currentFile !== null);
 
-			return false;
-		}
+		return $this->currentFile->getPosition();
+	}
+
+	/**
+	 * @see https://www.php.net/manual/en/streamwrapper.stream-truncate.php
+	 */
+	public function stream_truncate(int $new_size): bool
+	{
+		assert($this->currentFile !== null);
+
+		$this->currentFile->truncate($new_size);
+		clearstatcache();
 
 		return true;
+	}
+
+	/**
+	 * @see https://www.php.net/streamwrapper.stream-write
+	 */
+	public function stream_write(string $data): int
+	{
+		assert($this->currentFile !== null);
+
+		if (!$this->currentFile->isOpenedForWriting()) {
+			return 0;
+		}
+
+		//file access time changes so stat cache needs to be cleared
+		$written = $this->currentFile->write($data);
+		clearstatcache();
+
+		return $written;
 	}
 
 	/**
@@ -645,182 +910,28 @@ final class StreamWrapper
 	}
 
 	/**
-	 * @see https://www.php.net/streamwrapper.mkdir
-	 */
-	public function mkdir(string $path, int $mode, int $options): bool
-	{
-		$container = self::getContainer($path);
-		$path = self::stripScheme($path);
-		$recursive = (bool) ($options & STREAM_MKDIR_RECURSIVE);
-		$permissionChecker = $container->getPermissionChecker();
-
-		try {
-			//need to check all parents for permissions
-			$parentPath = $path;
-			while ($parentPath = dirname($parentPath)) {
-				try {
-					$parent = $container->getNodeAt($parentPath);
-					if (!$permissionChecker->isWritable($parent)) {
-						trigger_error(sprintf('mkdir: %s: Permission denied', dirname($path)), E_USER_WARNING);
-
-						return false;
-					}
-
-					if ($parent instanceof RootDirectory) {
-						break;
-					}
-				} catch (PathNotFound $e) {
-					break; //will sort missing parent below
-				}
-			}
-
-			$container->createDir($path, $recursive, $mode);
-		} catch (PathAlreadyExists $e) {
-			trigger_error($e->getMessage(), E_USER_WARNING);
-
-			return false;
-		} catch (PathNotFound $e) {
-			trigger_error(sprintf('mkdir: %s: No such file or directory', dirname($path)), E_USER_WARNING);
-
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
-	 * @see https://www.php.net/manual/en/streamwrapper.dir-opendir.php
-	 */
-	public function dir_opendir(string $path, int $options): bool
-	{
-		$container = self::getContainer($path);
-
-		$path = self::stripScheme($path);
-
-		if (!$container->hasNodeAt($path)) {
-			trigger_error(sprintf('opendir(%s): failed to open dir: No such file or directory', $path), E_USER_WARNING);
-
-			return false;
-		}
-
-		try {
-
-			$dir = $container->getDirectoryAt($path);
-
-		} catch (PathIsNotADirectory $e) {
-			trigger_error(sprintf('opendir(%s): failed to open dir: Not a directory', $path), E_USER_WARNING);
-
-			return false;
-		}
-
-		$permissionChecker = $container->getPermissionChecker();
-
-		if (!$permissionChecker->isReadable($dir)) {
-			trigger_error(sprintf('opendir(%s): failed to open dir: Permission denied', $path), E_USER_WARNING);
-
-			return false;
-		}
-
-		$this->currentDir = new DirectoryHandler($dir);
-
-		return true;
-	}
-
-	/**
-	 * @return string|false
+	 * @phpstan-param int-mask-of<self::UrlStatsFlags> $flags
+	 * @return array<int|string, int>|false
 	 *
-	 * @see https://www.php.net/manual/en/streamwrapper.dir-readdir.php
+	 * @see https://www.php.net/manual/en/streamwrapper.url-stat.php
 	 */
-	public function dir_readdir()
+	public function url_stat(string $path, int $flags)
 	{
-		assert($this->currentDir !== null);
-
-		$iterator = $this->currentDir->getIterator();
-		if (!$iterator->valid()) {
-			return false;
-		}
-
-		$node = $iterator->current();
-		$iterator->next();
-
-		return $node->getBasename();
-	}
-
-	/**
-	 * @see https://www.php.net/manual/en/streamwrapper.dir-closedir.php
-	 */
-	public function dir_closedir(): bool
-	{
-		if ($this->currentDir !== null) {
-			$this->currentDir = null;
-
-			return true;
-		}
-
-		return false;
-	}
-
-	/**
-	 * @see https://www.php.net/manual/en/streamwrapper.dir-rewinddir.php
-	 */
-	public function dir_rewinddir(): bool
-	{
-		assert($this->currentDir !== null);
-		$this->currentDir->getIterator()->rewind();
-
-		return true;
-	}
-
-	/**
-	 * @see https://www.php.net/manual/en/streamwrapper.rmdir.php
-	 */
-	public function rmdir(string $path, int $options): bool
-	{
-		$container = self::getContainer($path);
-		$path = self::stripScheme($path);
-
 		try {
-			$directory = $container->getNodeAt($path);
+			$file = self::getContainer($path)->getNodeAt(self::stripScheme($path));
 
-			if ($directory instanceof File) {
-				trigger_error(
-					sprintf('Warning: rmdir(%s): Not a directory', $path),
-					E_USER_WARNING,
-				);
-
-				return false;
-			}
-
-			$permissionChecker = $container->getPermissionChecker();
-			if (!$permissionChecker->isReadable($directory)) {
-				trigger_error(
-					sprintf('rmdir: %s: Permission denied', $path),
-					E_USER_WARNING,
-				);
-
-				return false;
-			}
+			return array_merge($this->getStatDefault(), [
+				'mode' => $file->getMode(),
+				'uid' => $file->getUser(),
+				'gid' => $file->getGroup(),
+				'atime' => $file->getAccessTime(),
+				'mtime' => $file->getModificationTime(),
+				'ctime' => $file->getChangeTime(),
+				'size' => $file->getSize(),
+			]);
 		} catch (PathNotFound $e) {
-			trigger_error(
-				sprintf('Warning: rmdir(%s): No such file or directory', $path),
-				E_USER_WARNING,
-			);
-
 			return false;
 		}
-
-		if ($directory->getSize() !== 0) {
-			trigger_error(
-				sprintf('Warning: rmdir(%s): Directory not empty', $path),
-				E_USER_WARNING,
-			);
-
-			return false;
-		}
-
-		$container->remove($path, true);
-
-		return true;
 	}
 
 }
