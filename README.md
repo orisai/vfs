@@ -51,7 +51,7 @@ $scheme = VFS::register();
 file_put_contents("$scheme://dir/file", 'content');
 
 // Read content of virtual file
-$content  = file_get_contents("$scheme://dir/file");
+$content = file_get_contents("$scheme://dir/file");
 
 // Unregister protocol, delete the virtual filesystem
 VFS::unregister($scheme);
