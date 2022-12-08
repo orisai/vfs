@@ -14,3 +14,6 @@ parameters:
 		- message: '#^PHPDoc tag \@param for parameter \$(options|flags) contains unresolvable type\.$#'
 		  path: ../src/StreamWrapper.php
 		  count: 4
+
+		# If it fails, I will fix it
+		- '#^(.+)string\|false(.+)$#'
