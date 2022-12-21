@@ -3,7 +3,7 @@
 namespace Orisai\VFS\Structure;
 
 use Orisai\VFS\Lock;
-use Orisai\VFS\StreamWrapper;
+use Orisai\VFS\VfsStreamWrapper;
 use SplObjectStorage;
 use function strlen;
 use const LOCK_EX;
@@ -18,9 +18,9 @@ final class File extends Node
 
 	private string $data = '';
 
-	private ?StreamWrapper $exclusiveLock = null;
+	private ?VfsStreamWrapper $exclusiveLock = null;
 
-	/** @var SplObjectStorage<StreamWrapper, mixed> */
+	/** @var SplObjectStorage<VfsStreamWrapper, mixed> */
 	private SplObjectStorage $sharedLock;
 
 	/**
@@ -58,7 +58,7 @@ final class File extends Node
 	/**
 	 * @phpstan-param Lock::LOCK_* $operation
 	 */
-	public function lock(StreamWrapper $wrapper, int $operation): bool
+	public function lock(VfsStreamWrapper $wrapper, int $operation): bool
 	{
 		if ($this->exclusiveLock === $wrapper) {
 			$this->exclusiveLock = null;

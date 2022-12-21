@@ -25,15 +25,15 @@ final class VFS
 
 		$scheme ??= uniqid('ori.var.', true);
 
-		stream_wrapper_register($scheme, StreamWrapper::class);
-		StreamWrapper::$containers[$scheme] = new Container(new Factory());
+		stream_wrapper_register($scheme, VfsStreamWrapper::class);
+		VfsStreamWrapper::$containers[$scheme] = new Container(new Factory());
 
 		return $scheme;
 	}
 
 	public static function unregister(string $scheme): void
 	{
-		unset(StreamWrapper::$containers[$scheme]);
+		unset(VfsStreamWrapper::$containers[$scheme]);
 		@stream_wrapper_unregister($scheme);
 	}
 

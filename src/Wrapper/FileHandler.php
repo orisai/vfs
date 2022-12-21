@@ -3,8 +3,8 @@
 namespace Orisai\VFS\Wrapper;
 
 use Orisai\VFS\Lock;
-use Orisai\VFS\StreamWrapper;
 use Orisai\VFS\Structure\File;
+use Orisai\VFS\VfsStreamWrapper;
 use function min;
 use function strlen;
 use function substr;
@@ -145,7 +145,7 @@ final class FileHandler
 	/**
 	 * @phpstan-param Lock::LOCK_* $operation
 	 */
-	public function lock(StreamWrapper $wrapper, int $operation): bool
+	public function lock(VfsStreamWrapper $wrapper, int $operation): bool
 	{
 		return $this->file->lock($wrapper, $operation);
 	}

@@ -6,14 +6,5 @@ parameters:
 	resultCachePath: %currentWorkingDirectory%/var/tools/PHPStan/resultCache.src.php
 
 	ignoreErrors:
-		# Types in phpdoc are reported unused
-		- message: '#^Constant (.+)\:\:(CastsAs|MetadataOptions|OpensModes|OpensOptions|SeeksWhence|SetOptionOptions|UrlStatsFlags|MkdirsOptions) is unused\.$#'
-		  path: ../src/StreamWrapper.php
-
-		# int-mask-of does not resolve values from constant
-		- message: '#^PHPDoc tag \@param for parameter \$(options|flags) contains unresolvable type\.$#'
-		  path: ../src/StreamWrapper.php
-		  count: 4
-
 		# If it fails, I will fix it
 		- '#^(.+)string\|false(.+)$#'

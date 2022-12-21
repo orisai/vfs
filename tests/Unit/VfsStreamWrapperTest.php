@@ -5,9 +5,9 @@ namespace Tests\Orisai\VFS\Unit;
 use DirectoryIterator;
 use finfo;
 use Orisai\VFS\Container;
-use Orisai\VFS\StreamWrapper;
 use Orisai\VFS\Structure\Directory;
 use Orisai\VFS\VFS;
+use Orisai\VFS\VfsStreamWrapper;
 use Orisai\VFS\Wrapper\PermissionChecker;
 use PHPUnit\Framework\TestCase;
 use function base64_decode;
@@ -69,7 +69,7 @@ use const STREAM_META_OWNER_NAME;
 use const STREAM_META_TOUCH;
 use const STREAM_REPORT_ERRORS;
 
-final class StreamWrapperTest extends TestCase
+final class VfsStreamWrapperTest extends TestCase
 {
 
 	private string $scheme;
@@ -84,7 +84,7 @@ final class StreamWrapperTest extends TestCase
 	{
 		parent::setUp();
 		$this->scheme = VFS::register();
-		$this->container = StreamWrapper::getContainer($this->scheme);
+		$this->container = VfsStreamWrapper::getContainer($this->scheme);
 		$factory = $this->container->getFactory();
 		$this->uid = $factory->getUid();
 		$this->gid = $factory->getGid();
@@ -98,17 +98,17 @@ final class StreamWrapperTest extends TestCase
 
 	public function testSchemeStripping(): void
 	{
-		self::assertSame('/1/2/3/4', StreamWrapper::stripScheme('test://1/2/3/4'));
-		self::assertSame('/', StreamWrapper::stripScheme('test://'));
-		self::assertSame('/', StreamWrapper::stripScheme('test:///'));
-		self::assertSame('/dir', StreamWrapper::stripScheme('test:///dir'));
+		self::assertSame('/1/2/3/4', VfsStreamWrapper::stripScheme('test://1/2/3/4'));
+		self::assertSame('/', VfsStreamWrapper::stripScheme('test://'));
+		self::assertSame('/', VfsStreamWrapper::stripScheme('test:///'));
+		self::assertSame('/dir', VfsStreamWrapper::stripScheme('test:///dir'));
 	}
 
 	public function testContainerIsReturnedFromContext(): void
 	{
-		self::assertSame($this->container, StreamWrapper::getContainer("$this->scheme://file"));
-		self::assertSame($this->container, StreamWrapper::getContainer("$this->scheme://"));
-		self::assertSame($this->container, StreamWrapper::getContainer("$this->scheme:///file"));
+		self::assertSame($this->container, VfsStreamWrapper::getContainer("$this->scheme://file"));
+		self::assertSame($this->container, VfsStreamWrapper::getContainer("$this->scheme://"));
+		self::assertSame($this->container, VfsStreamWrapper::getContainer("$this->scheme:///file"));
 	}
 
 	public function testFileExists(): void
@@ -355,7 +355,7 @@ final class StreamWrapperTest extends TestCase
 	{
 		self::assertFalse(@fopen("$this->scheme://nonExistingFile", 'r'));
 
-		$class = StreamWrapper::class;
+		$class = VfsStreamWrapper::class;
 		$error = error_get_last();
 
 		if (PHP_VERSION_ID >= 8_00_00) {
@@ -399,7 +399,7 @@ final class StreamWrapperTest extends TestCase
 	{
 		self::assertFalse(@fopen("$this->scheme://dir/file", 'w'));
 
-		$class = StreamWrapper::class;
+		$class = VfsStreamWrapper::class;
 		$error = error_get_last();
 
 		if (PHP_VERSION_ID >= 8_00_00) {
@@ -748,7 +748,7 @@ final class StreamWrapperTest extends TestCase
 	{
 		$opened_path = null;
 
-		$wrapper = new StreamWrapper();
+		$wrapper = new VfsStreamWrapper();
 
 		self::assertFalse(
 			$wrapper->stream_open("$this->scheme://file", 'r', 0, $opened_path),
@@ -770,7 +770,7 @@ final class StreamWrapperTest extends TestCase
 	{
 		mkdir("$this->scheme://dir");
 
-		$wrapper = new StreamWrapper();
+		$wrapper = new VfsStreamWrapper();
 
 		$handle = $wrapper->dir_opendir("$this->scheme://dir", STREAM_BUFFER_NONE);
 
@@ -797,7 +797,7 @@ final class StreamWrapperTest extends TestCase
 	{
 		touch("$this->scheme://file");
 
-		$wrapper = new StreamWrapper();
+		$wrapper = new VfsStreamWrapper();
 
 		$handle = @$wrapper->dir_opendir("$this->scheme://file", STREAM_BUFFER_NONE);
 
@@ -816,7 +816,7 @@ final class StreamWrapperTest extends TestCase
 	{
 		mkdir("$this->scheme://dir");
 
-		$wrapper = new StreamWrapper();
+		$wrapper = new VfsStreamWrapper();
 
 		self::assertFalse($wrapper->dir_closedir(), 'Returns false when no dir opened');
 
@@ -831,7 +831,7 @@ final class StreamWrapperTest extends TestCase
 		mkdir("$this->scheme://dir2");
 		mkdir("$this->scheme://dir3");
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 		$wr->dir_opendir("$this->scheme://", STREAM_BUFFER_NONE);
 
 		self::assertSame('dir1', $wr->dir_readdir());
@@ -870,7 +870,7 @@ final class StreamWrapperTest extends TestCase
 
 		$opened_path = null;
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 		@$wr->stream_open("$this->scheme://dir", 'w', STREAM_REPORT_ERRORS, $opened_path);
 
 		$error = error_get_last();
@@ -898,7 +898,7 @@ final class StreamWrapperTest extends TestCase
 		$file = $this->container->createFile('/file');
 		$openedPath = null;
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 
 		$file->setMode(0_000);
 		$file->setUser(PermissionChecker::RootId);
@@ -946,7 +946,7 @@ final class StreamWrapperTest extends TestCase
 		$file = $this->container->createDir('/dir');
 		$openedPath = null;
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 
 		$file->setMode(0_000);
 		$file->setUser(PermissionChecker::RootId);
@@ -994,7 +994,7 @@ final class StreamWrapperTest extends TestCase
 		$file = $this->container->createDir('/dir');
 		$openedPath = null;
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 
 		$file->setMode(0_000);
 		$file->setUser(PermissionChecker::RootId);
@@ -1039,7 +1039,7 @@ final class StreamWrapperTest extends TestCase
 
 		$openedPath = null;
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 
 		@$wr->stream_open("$this->scheme://dir/file", 'w', STREAM_REPORT_ERRORS, $openedPath);
 
@@ -1095,7 +1095,7 @@ final class StreamWrapperTest extends TestCase
 	{
 		mkdir("$this->scheme://test", 0_000);
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 
 		self::assertFalse(@$wr->mkdir("$this->scheme://test/dir", 0_777, 0));
 
@@ -1109,7 +1109,7 @@ final class StreamWrapperTest extends TestCase
 		$file = $this->container->createFile('/file');
 		$file->setMode(0_000);
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 		self::assertTrue($wr->unlink("$this->scheme://file"), 'Allows removals with writable parent');
 
 		$this->container->getRootDirectory()->setMode(0_500);
@@ -1128,7 +1128,7 @@ final class StreamWrapperTest extends TestCase
 	{
 		$dir = $this->container->createDir('/dir');
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 
 		$dir->setMode(0_000);
 		@rmdir("$this->scheme://dir");
@@ -1165,7 +1165,7 @@ final class StreamWrapperTest extends TestCase
 		$file = $this->container->createFile('/file');
 		$file->setUser($this->uid + 1); //set to non-current
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 
 		self::assertFalse(
 			@$wr->stream_metadata("$this->scheme://file", STREAM_META_ACCESS, 0_000),
@@ -1184,7 +1184,7 @@ final class StreamWrapperTest extends TestCase
 
 		$uid = $this->uid + 1;
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 
 		self::assertTrue(
 			$wr->stream_metadata("$this->scheme://$fileName", STREAM_META_OWNER, $uid),
@@ -1224,7 +1224,7 @@ final class StreamWrapperTest extends TestCase
 		$file = $this->container->createFile('/file');
 		$file->setUser($this->uid + 1); //set to non-current
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 
 		self::assertFalse(
 			@$wr->stream_metadata("$this->scheme://file", STREAM_META_OWNER, 1),
@@ -1269,7 +1269,7 @@ final class StreamWrapperTest extends TestCase
 		$file->setUser($this->uid + 1); //set to non-current
 		$file->setMode(0_000);
 
-		$wr = new StreamWrapper();
+		$wr = new VfsStreamWrapper();
 
 		self::assertFalse(
 			@$wr->stream_metadata("$this->scheme://file", STREAM_META_TOUCH, 0),
