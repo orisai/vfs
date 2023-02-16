@@ -1,0 +1,81 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Cannot access offset 'atime' on array\\{0\\: int, 1\\: int, 2\\: int, 3\\: int, 4\\: int, 5\\: int, 6\\: int, 7\\: int, \\.\\.\\.\\}\\|false\\.$#"
+			count: 7
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Cannot access offset 'ctime' on array\\{0\\: int, 1\\: int, 2\\: int, 3\\: int, 4\\: int, 5\\: int, 6\\: int, 7\\: int, \\.\\.\\.\\}\\|false\\.$#"
+			count: 2
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Cannot access offset 'gid' on array\\|false\\.$#"
+			count: 3
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Cannot access offset 'mtime' on array\\{0\\: int, 1\\: int, 2\\: int, 3\\: int, 4\\: int, 5\\: int, 6\\: int, 7\\: int, \\.\\.\\.\\}\\|false\\.$#"
+			count: 3
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Cannot access offset 'name' on array\\{name\\: string, passwd\\: string, gid\\: int, members\\: list\\<string\\>\\}\\|false\\.$#"
+			count: 4
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Cannot access offset 'name' on array\\|false\\.$#"
+			count: 2
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Offset 'message' might not exist on array\\{type\\: int, message\\: string, file\\: string, line\\: int\\}\\|null\\.$#"
+			count: 33
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$fp of function fflush expects resource, resource\\|false given\\.$#"
+			count: 1
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$fp of function flock expects resource, resource\\|false given\\.$#"
+			count: 20
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$fp of function fread expects resource, resource\\|false given\\.$#"
+			count: 6
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$fp of function fseek expects resource, resource\\|false given\\.$#"
+			count: 7
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$fp of function ftell expects resource, resource\\|false given\\.$#"
+			count: 3
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$fp of function ftruncate expects resource, resource\\|false given\\.$#"
+			count: 1
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$fp of function fwrite expects resource, resource\\|false given\\.$#"
+			count: 9
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$gid of function posix_getgrgid expects int, int\\|false given\\.$#"
+			count: 2
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$uid of function posix_getpwuid expects int, int\\|false given\\.$#"
+			count: 2
+			path: ../tests/Unit/VfsStreamWrapperTest.php

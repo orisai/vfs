@@ -1,0 +1,37 @@
+includes:
+	- ../vendor/phpstan/phpstan/conf/bleedingEdge.neon
+	- phpstan.baseline.neon
+
+parameters:
+	phpVersion: 70400
+	level: 8
+	tmpDir: ../var/tools/PHPStan
+	resultCachePath: %currentWorkingDirectory%/var/tools/PHPStan/resultCache.php
+
+	checkBenevolentUnionTypes: true
+	checkMissingCallableSignature: true
+	checkInternalClassCaseSensitivity: true
+	checkTooWideReturnTypesInProtectedAndPublicMethods: true
+
+	exceptions:
+		check:
+			missingCheckedExceptionInThrows: true
+			tooWideThrowType: true
+		checkedExceptionClasses:
+			- Orisai\Exceptions\Check\CheckedException
+
+	ignoreErrors:
+		# If it fails, I will fix it
+		- '#^(.+)string\|false(.+)$#'
+
+		# It has, we are testing access time
+		-
+			message: '#^Call to function file_get_contents\(\) on a separate line has no effect\.$#'
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+			count: 1
+
+		# It *should*, we are testing internal behavior
+		-
+			message: '#^Call to static method (.+)\:\:assertFalse\(\) with true and ''(.+)'' will always evaluate to false\.$#'
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+			count: 1
