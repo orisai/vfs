@@ -28,8 +28,8 @@ use Orisai\VFS\VFS;
 $scheme = VFS::register();
 
 // Do anything you want with filesystem functions, like read and write
-file_put_contents("$scheme://dir/file", 'content');
-$content = file_get_contents("$scheme://dir/file");
+file_put_contents("$scheme://file", 'content');
+$content = file_get_contents("$scheme://file");
 
 // Unregister protocol, delete the virtual filesystem
 VFS::unregister($scheme);

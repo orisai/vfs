@@ -48,10 +48,10 @@ use Orisai\VFS\VFS;
 $scheme = VFS::register();
 
 // Write into virtual file
-file_put_contents("$scheme://dir/file", 'content');
+file_put_contents("$scheme://file", 'content');
 
 // Read content of virtual file
-$content = file_get_contents("$scheme://dir/file");
+$content = file_get_contents("$scheme://file");
 
 // Unregister protocol, delete the virtual filesystem
 VFS::unregister($scheme);
