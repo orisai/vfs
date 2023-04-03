@@ -52,7 +52,7 @@ final class Link extends Node
 	 */
 	private function resolve(Node $node): Node
 	{
-		if ($node instanceof Link) {
+		if ($node instanceof self) {
 			return $node->getResolvedDestination();
 		}
 

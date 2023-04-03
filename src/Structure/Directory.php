@@ -35,7 +35,7 @@ class Directory extends Node
 		$node->setParent($this);
 	}
 
-	public function addDirectory(Directory $directory): void
+	public function addDirectory(self $directory): void
 	{
 		$this->addChild($directory);
 	}
