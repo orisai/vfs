@@ -5,7 +5,8 @@ namespace Tests\Orisai\VFS\Unit;
 use Orisai\Exceptions\Logic\InvalidArgument;
 use Orisai\VFS\VFS;
 use PHPUnit\Framework\TestCase;
-use function PHPUnit\Framework\assertNotContains;
+use function file_get_contents;
+use function file_put_contents;
 use function stream_get_wrappers;
 
 final class VFSTest extends TestCase
@@ -17,7 +18,7 @@ final class VFSTest extends TestCase
 		self::assertContains($scheme, stream_get_wrappers());
 
 		VFS::unregister($scheme);
-		assertNotContains($scheme, stream_get_wrappers());
+		self::assertNotContains($scheme, stream_get_wrappers());
 	}
 
 	public function testCustomScheme(): void
@@ -46,9 +47,18 @@ MSG);
 
 	public function testUnregisterNonExistent(): void
 	{
-		assertNotContains('nonexistent', stream_get_wrappers());
+		self::assertNotContains('nonexistent', stream_get_wrappers());
 		VFS::unregister('nonexistent');
-		assertNotContains('nonexistent', stream_get_wrappers());
+		self::assertNotContains('nonexistent', stream_get_wrappers());
+	}
+
+	public function testWrapper(): void
+	{
+		$scheme = VFS::register();
+		file_put_contents("$scheme://file", 'content');
+		$content = file_get_contents("$scheme://file");
+
+		self::assertSame($content, 'content');
 	}
 
 }
