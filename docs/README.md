@@ -107,10 +107,55 @@ List of knowingly supported functions (see [known limitations](#known-limitation
 
 Cannot be implemented, because stream wrapper is not supported by PHP:
 
-- `chdir()`
+- `chdir()`, `chroot()`
 - `ini_set('error_log')`
 - `glob()` ([here](https://wiki.php.net/rfc/glob_streamwrapper_support) is an RFC to support it)
 - `realpath()`, `SplFileInfo::getRealPath()`
 - `link()`, `symlink()`, `readlink()`, `linkinfo()`
 - `tempnam()`
 - `ext/zip`
+
+Unverified:
+
+- `basename()`
+- `dirname()`
+- `fclose()`
+- `fdatasync()`
+- `feof()`
+- `fgetc()`
+- `fgetcsv()`
+- `fgets()`
+- `fgetss()`
+- `file_exists()`
+- `file()`
+- `fileinode()`
+- `filetype()`
+- `fnmatch()`
+- `fpassthru()`
+- `fputcsv()`
+- `fputs()`
+- `fscanf()`
+- `fstat()`
+- `fsync()`
+- `is_dir()`
+- `lchgrp()`
+- `lstat()`
+- `parse_ini_file()`
+- `pathinfo()`
+- `pclose()`
+- `popen()`
+- `readfile()`
+- `rewind()`
+- `closedir()`
+- `dir()`
+- `opendir()`
+- `readdir()`
+- `rewinddir()`
+- `scandir()`
+
+Pointless:
+
+- `disk_free_space()`
+- `disk_total_space()`
+- `is_uploaded_file()`
+- `move_uploaded_file()`
