@@ -79,7 +79,7 @@ class DirectoryTest extends TestCase
 		$root->addDirectory(new Directory('dir1', time(), 0, 0));
 		$root->addDirectory(new Directory('dir2', time(), 0, 0));
 
-		self::assertSame(2, $root->getSize());
+		self::assertSame(2 + Directory::EmptyDirSize, $root->getSize());
 	}
 
 	public function testThrowsWhenFileNameClashes(): void

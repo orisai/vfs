@@ -3,6 +3,7 @@
 namespace Tests\Orisai\VFS\Unit;
 
 use DirectoryIterator;
+use FilesystemIterator;
 use finfo;
 use Orisai\VFS\Container;
 use Orisai\VFS\Structure\Directory;
@@ -39,6 +40,7 @@ use function is_file;
 use function is_link;
 use function is_readable;
 use function is_writable;
+use function iterator_count;
 use function lchown;
 use function mkdir;
 use function opendir;
@@ -46,6 +48,7 @@ use function posix_getgrgid;
 use function posix_getpwuid;
 use function rename;
 use function rmdir;
+use function scandir;
 use function stat;
 use function str_repeat;
 use function touch;
@@ -58,6 +61,8 @@ use const LOCK_NB;
 use const LOCK_SH;
 use const LOCK_UN;
 use const PHP_VERSION_ID;
+use const SCANDIR_SORT_DESCENDING;
+use const SCANDIR_SORT_NONE;
 use const SEEK_CUR;
 use const SEEK_END;
 use const STREAM_BUFFER_NONE;
@@ -834,13 +839,15 @@ final class VfsStreamWrapperTest extends TestCase
 		$wr = new VfsStreamWrapper();
 		$wr->dir_opendir("$this->scheme://", STREAM_BUFFER_NONE);
 
+		self::assertSame('.', $wr->dir_readdir());
+		self::assertSame('..', $wr->dir_readdir());
 		self::assertSame('dir1', $wr->dir_readdir());
 		self::assertSame('dir2', $wr->dir_readdir());
 		self::assertSame('dir3', $wr->dir_readdir());
 		self::assertFalse($wr->dir_readdir());
 
 		$wr->dir_rewinddir();
-		self::assertSame('dir1', $wr->dir_readdir(), 'Directory rewound');
+		self::assertSame('.', $wr->dir_readdir(), 'Directory rewound');
 	}
 
 	public function testDirectoryIterationWithDirectoryIterator(): void
@@ -855,7 +862,17 @@ final class VfsStreamWrapperTest extends TestCase
 			$result[] = $fileInfo->getBasename();
 		}
 
-		self::assertSame(['dir1', 'dir2', 'dir3'], $result, 'All directories found');
+		self::assertSame(
+			[
+				'.',
+				'..',
+				'dir1',
+				'dir2',
+				'dir3',
+			],
+			$result,
+			'All directories found',
+		);
 	}
 
 	public function testStreamOpenDoesNotOpenDirectoriesForWriting(): void
@@ -1559,6 +1576,86 @@ final class VfsStreamWrapperTest extends TestCase
 		file_put_contents("$this->scheme://file.php", '<?php return 1;');
 
 		self::assertSame(1, require "$this->scheme://file.php");
+	}
+
+	public function testScanDir(): void
+	{
+		self::assertSame(
+			[
+				'.',
+				'..',
+			],
+			scandir("$this->scheme://"),
+		);
+		self::assertSame(
+			[
+				'..',
+				'.',
+			],
+			scandir("$this->scheme://", SCANDIR_SORT_DESCENDING),
+		);
+		self::assertSame(
+			[
+				'.',
+				'..',
+			],
+			scandir("$this->scheme://", SCANDIR_SORT_NONE),
+		);
+
+		mkdir("$this->scheme://dir1");
+		file_put_contents("$this->scheme://file.txt", 'content');
+		mkdir("$this->scheme://dir2");
+
+		self::assertSame(
+			[
+				'.',
+				'..',
+				'dir1',
+				'dir2',
+				'file.txt',
+			],
+			scandir("$this->scheme://"),
+		);
+		self::assertSame(
+			[
+				'file.txt',
+				'dir2',
+				'dir1',
+				'..',
+				'.',
+			],
+			scandir("$this->scheme://", SCANDIR_SORT_DESCENDING),
+		);
+		self::assertSame(
+			[
+				'.',
+				'..',
+				'dir1',
+				'file.txt',
+				'dir2',
+			],
+			scandir("$this->scheme://", SCANDIR_SORT_NONE),
+		);
+	}
+
+	public function testIteratorCount(): void
+	{
+		mkdir("$this->scheme://dir1");
+		file_put_contents("$this->scheme://file.txt", 'content');
+
+		$fi = new FilesystemIterator(
+			"$this->scheme://",
+			FilesystemIterator::KEY_AS_PATHNAME | FilesystemIterator::CURRENT_AS_FILEINFO,
+		);
+		if (PHP_VERSION_ID < 8_02_00) {
+			// SKIP_DOTS is always set and cannot be removed on PHP < 8.2
+			self::assertSame(2, iterator_count($fi));
+		} else {
+			self::assertSame(4, iterator_count($fi));
+		}
+
+		$fi = new FilesystemIterator("$this->scheme://");
+		self::assertSame(2, iterator_count($fi));
 	}
 
 }

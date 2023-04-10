@@ -198,7 +198,7 @@ final class Container
 				throw new RuntimeException('Can\'t move.');
 			}
 
-			if ($nodeToOverride instanceof Directory && $nodeToOverride->getSize() > 0) {
+			if ($nodeToOverride instanceof Directory && $nodeToOverride->getSize() > Directory::EmptyDirSize) {
 				//nodes of a different type
 				throw new RuntimeException('Can\'t override non empty directory.');
 			}

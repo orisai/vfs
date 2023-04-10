@@ -94,6 +94,7 @@ List of knowingly supported functions (see [known limitations](#known-limitation
 - `posix_getpwuid()`
 - `rename()`
 - `rmdir()`
+- `scandir()`
 - `stat()`
 - `touch()`
 - `unlink()`
@@ -101,7 +102,6 @@ List of knowingly supported functions (see [known limitations](#known-limitation
 ## Known limitations
 
 - `umask()` - not implemented
-- `scandir()` - current dir (`.`) and parent dir (`..`) are not listed
 - `stream_set_blocking()`, `stream_set_timeout()`, `stream_set_write_buffer()` and `stream_set_option()` - not implemented
 - Windows `fopen()` `t` mode (e.g. `w+t`) - not implemented
 

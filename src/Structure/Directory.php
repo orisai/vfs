@@ -13,12 +13,35 @@ use function count;
 class Directory extends Node
 {
 
+	/** . and .. links */
+	public const EmptyDirSize = 2;
+
 	/** @var array<string, Directory|File|Link> */
 	private array $children = [];
+
+	public function __construct(string $basename, int $currentTime, int $uid, int $gid)
+	{
+		parent::__construct($basename, $currentTime, $uid, $gid);
+
+		$this->addChild(new Link($this, '.', $currentTime, $uid, $gid));
+		if ($this instanceof RootDirectory) {
+			$this->addChild(new Link($this, '..', $currentTime, $uid, $gid));
+		}
+	}
 
 	public static function getStatType(): int
 	{
 		return 0_040_000;
+	}
+
+	protected function setParent(self $parent): void
+	{
+		parent::setParent($parent);
+
+		if (!$this instanceof RootDirectory) {
+			$this->removeChild('..');
+			$this->addChild(new Link($parent, '..', $this->getChangeTime(), $this->getUser(), $this->getGroup()));
+		}
 	}
 
 	/**

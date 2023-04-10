@@ -264,7 +264,7 @@ final class VfsStreamWrapper implements StreamWrapper
 			return false;
 		}
 
-		if ($directory->getSize() !== 0) {
+		if ($directory->getSize() !== Directory::EmptyDirSize) {
 			trigger_error(
 				sprintf('Warning: rmdir(%s): Directory not empty', $path),
 				E_USER_WARNING,
