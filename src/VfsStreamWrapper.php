@@ -63,6 +63,9 @@ final class VfsStreamWrapper implements StreamWrapper
 
 	private ?DirectoryHandler $currentDir = null;
 
+	/** @var resource|null */
+	public $context;
+
 	/** @var array<string, Container> */
 	public static array $containers = [];
 
