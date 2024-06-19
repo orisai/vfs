@@ -196,7 +196,10 @@ final class VfsStreamWrapperTest extends TestCase
 		);
 
 		chown("$this->scheme://", 'root');
-		self::assertSame('root', posix_getpwuid(fileowner("$this->scheme://"))['name']);
+		$userInfo = posix_getpwuid(fileowner("$this->scheme://"));
+		self::assertNotFalse($userInfo);
+
+		self::assertSame('root', $userInfo['name']);
 	}
 
 	public function testChownById(): void
@@ -231,11 +234,22 @@ final class VfsStreamWrapperTest extends TestCase
 
 		//lets workout available group
 		//this is needed to find string name of group root belongs to
-		$group = posix_getgrgid(posix_getpwuid(0)['gid'])['name'];
+		$oldUserInfo = posix_getpwuid(0);
+		self::assertNotFalse($oldUserInfo);
 
-		chgrp("$this->scheme://", $group);
+		$oldGroupInfo = posix_getgrgid($oldUserInfo['gid']);
+		self::assertNotFalse($oldGroupInfo);
 
-		self::assertSame($group, posix_getgrgid(filegroup("$this->scheme://"))['name']);
+		$groupName = $oldGroupInfo['name'];
+
+		chgrp("$this->scheme://", $groupName);
+
+		$userInfo = posix_getpwuid(0);
+		self::assertNotFalse($userInfo);
+		$groupInfo = posix_getgrgid($userInfo['gid']);
+		self::assertNotFalse($groupInfo);
+
+		self::assertSame($groupName, $groupInfo['name']);
 	}
 
 	public function testChgrpById(): void
@@ -252,7 +266,10 @@ final class VfsStreamWrapperTest extends TestCase
 		);
 
 		//lets workout available group
-		$group = posix_getpwuid(0)['gid'];
+		$userInfo = posix_getpwuid(0);
+		self::assertNotFalse($userInfo);
+
+		$group = $userInfo['gid'];
 
 		chgrp("$this->scheme://", $group);
 
@@ -1332,7 +1349,11 @@ final class VfsStreamWrapperTest extends TestCase
 		);
 
 		lchown("$this->scheme://dir/link", 'root');
-		self::assertSame('root', posix_getpwuid(fileowner("$this->scheme://dir/link"))['name']);
+
+		$userInfo = posix_getpwuid(fileowner("$this->scheme://dir/link"));
+		self::assertNotFalse($userInfo);
+
+		self::assertSame('root', $userInfo['name']);
 	}
 
 	public function testLchgrp(): void
@@ -1355,11 +1376,19 @@ final class VfsStreamWrapperTest extends TestCase
 
 		//lets workout available group
 		//this is needed to find string name of group root belongs to
-		$group = posix_getgrgid(posix_getpwuid(0)['gid'])['name'];
+		$userInfo = posix_getpwuid(0);
+		self::assertNotFalse($userInfo);
+
+		$oldGroupInfo = posix_getgrgid($userInfo['gid']);
+		self::assertNotFalse($oldGroupInfo);
+
+		$group = $oldGroupInfo['name'];
 
 		chgrp("$this->scheme://dir/link", $group);
+		$groupInfo = posix_getgrgid(filegroup("$this->scheme://dir/link"));
+		self::assertNotFalse($groupInfo);
 
-		self::assertSame($group, posix_getgrgid(filegroup("$this->scheme://dir/link"))['name']);
+		self::assertSame($group, $groupInfo['name']);
 	}
 
 	public function testFileCopy(): void

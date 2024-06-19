@@ -11,23 +11,8 @@ parameters:
 			path: ../tests/Unit/VfsStreamWrapperTest.php
 
 		-
-			message: "#^Cannot access offset 'gid' on array\\|false\\.$#"
-			count: 3
-			path: ../tests/Unit/VfsStreamWrapperTest.php
-
-		-
 			message: "#^Cannot access offset 'mtime' on array\\{0\\: int, 1\\: int, 2\\: int, 3\\: int, 4\\: int, 5\\: int, 6\\: int, 7\\: int, \\.\\.\\.\\}\\|false\\.$#"
 			count: 3
-			path: ../tests/Unit/VfsStreamWrapperTest.php
-
-		-
-			message: "#^Cannot access offset 'name' on array\\{name\\: string, passwd\\: string, gid\\: int, members\\: list\\<string\\>\\}\\|false\\.$#"
-			count: 4
-			path: ../tests/Unit/VfsStreamWrapperTest.php
-
-		-
-			message: "#^Cannot access offset 'name' on array\\|false\\.$#"
-			count: 2
 			path: ../tests/Unit/VfsStreamWrapperTest.php
 
 		-
@@ -72,7 +57,7 @@ parameters:
 
 		-
 			message: "#^Parameter \\#1 \\$gid of function posix_getgrgid expects int, int\\|false given\\.$#"
-			count: 2
+			count: 1
 			path: ../tests/Unit/VfsStreamWrapperTest.php
 
 		-

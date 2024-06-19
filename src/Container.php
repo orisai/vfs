@@ -12,7 +12,6 @@ use Orisai\VFS\Structure\Node;
 use Orisai\VFS\Structure\RootDirectory;
 use Orisai\VFS\Wrapper\PermissionChecker;
 use RuntimeException;
-use function array_filter;
 use function basename;
 use function clearstatcache;
 use function dirname;
@@ -52,12 +51,30 @@ final class Container
 	}
 
 	/**
+	 * @return list<string>
+	 */
+	private function getPathParts(string $path): array
+	{
+		$path = str_replace('\\', '/', $path);
+		$pathParts = explode('/', $path);
+		$filteredPathParts = [];
+
+		foreach ($pathParts as $part) {
+			if ($part !== '') {
+				$filteredPathParts[] = $part;
+			}
+		}
+
+		return $filteredPathParts;
+	}
+
+	/**
 	 * @return Directory|File|Link
 	 * @throws PathNotFound
 	 */
 	public function getNodeAt(string $path): Node
 	{
-		$pathParts = array_filter(explode('/', str_replace('\\', '/', $path)), 'strlen');
+		$pathParts = $this->getPathParts($path);
 
 		$node = $this->getRootDirectory();
 
