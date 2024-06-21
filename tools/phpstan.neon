@@ -3,7 +3,7 @@ includes:
 	- phpstan.baseline.neon
 
 parameters:
-	phpVersion: 70400
+	phpVersion: 80300
 	level: 8
 	tmpDir: ../var/tools/PHPStan
 	resultCachePath: %currentWorkingDirectory%/var/tools/PHPStan/resultCache.php
@@ -12,6 +12,8 @@ parameters:
 	checkMissingCallableSignature: true
 	checkInternalClassCaseSensitivity: true
 	checkTooWideReturnTypesInProtectedAndPublicMethods: true
+	reportAnyTypeWideningInVarTag: true
+	reportPossiblyNonexistentConstantArrayOffset: true
 
 	exceptions:
 		check:
@@ -21,9 +23,6 @@ parameters:
 			- Orisai\Exceptions\Check\CheckedException
 
 	ignoreErrors:
-		# If it fails, I will fix it
-		- '#^(.+)string\|false(.+)$#'
-
 		# It *should*, we are testing internal behavior
 		-
 			message: '#^Call to static method (.+)\:\:assertFalse\(\) with true and ''(.+)'' will always evaluate to false\.$#'
