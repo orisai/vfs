@@ -21,7 +21,7 @@
 		}
 	],
 	"require": {
-		"php": "7.4 - 8.3",
+		"php": "7.4 - 8.4",
 		"orisai/exceptions": "^1.0.0",
 		"orisai/stream-wrapper-contracts": "^1.0.0",
 		"symfony/polyfill-php80": "^1.26"
