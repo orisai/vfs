@@ -513,9 +513,9 @@ final class VfsStreamWrapperTest extends TestCase
 
 		$stat = stat("$this->scheme://file");
 
-		self::assertNotEquals(0, $stat['atime']);
-		self::assertNotEquals(0, $stat['mtime']);
-		self::assertNotEquals(0, $stat['ctime']);
+		self::assertNotSame(0, $stat['atime']);
+		self::assertNotSame(0, $stat['mtime']);
+		self::assertNotSame(0, $stat['ctime']);
 
 		$file->setAccessTime(10);
 		$file->setModificationTime(10);
@@ -524,7 +524,7 @@ final class VfsStreamWrapperTest extends TestCase
 		file_get_contents("$this->scheme://file");
 		$stat = stat("$this->scheme://file");
 
-		self::assertNotEquals(10, $stat['atime'], 'Access time has changed after read');
+		self::assertNotSame(10, $stat['atime'], 'Access time has changed after read');
 		self::assertSame(10, $stat['mtime'], 'Modification time has not changed after read');
 		self::assertSame(10, $stat['ctime'], 'inode change time has not changed after read');
 
@@ -536,8 +536,8 @@ final class VfsStreamWrapperTest extends TestCase
 		$stat = stat("$this->scheme://file");
 
 		self::assertSame(10, $stat['atime'], 'Access time has not changed after write');
-		self::assertNotEquals(10, $stat['mtime'], 'Modification time has changed after write');
-		self::assertNotEquals(10, $stat['ctime'], 'inode change time has changed after write');
+		self::assertNotSame(10, $stat['mtime'], 'Modification time has changed after write');
+		self::assertNotSame(10, $stat['ctime'], 'inode change time has changed after write');
 
 		$file->setAccessTime(10);
 		$file->setModificationTime(10);
@@ -548,7 +548,7 @@ final class VfsStreamWrapperTest extends TestCase
 
 		self::assertSame(10, $stat['atime'], 'Access time has not changed after inode change');
 		self::assertSame(10, $stat['mtime'], 'Modification time has not changed after inode change');
-		self::assertNotEquals(10, $stat['ctime'], 'inode change time has changed after inode change');
+		self::assertNotSame(10, $stat['ctime'], 'inode change time has changed after inode change');
 
 		$file->setAccessTime(10);
 		$file->setModificationTime(10);
@@ -571,8 +571,8 @@ final class VfsStreamWrapperTest extends TestCase
 		$stat = stat("$this->scheme://file");
 
 		self::assertSame(20, $stat['atime'], 'Access time has not changed after opening for writing');
-		self::assertNotEquals(20, $stat['mtime'], 'Modification time has changed after opnening for writing');
-		self::assertNotEquals(20, $stat['ctime'], 'inode change time has changed after opnening for writing');
+		self::assertNotSame(20, $stat['mtime'], 'Modification time has changed after opnening for writing');
+		self::assertNotSame(20, $stat['ctime'], 'inode change time has changed after opnening for writing');
 	}
 
 	public function testTouchFileCreation(): void
@@ -600,9 +600,9 @@ final class VfsStreamWrapperTest extends TestCase
 		touch("$this->scheme://file2");
 		$stat = stat("$this->scheme://file2");
 
-		self::assertNotEquals(20, $stat['atime'], 'Access time has changed after touch');
-		self::assertNotEquals(20, $stat['mtime'], 'Modification time has changed after touch');
-		self::assertNotEquals(20, $stat['ctime'], 'inode change time has changed after touch');
+		self::assertNotSame(20, $stat['atime'], 'Access time has changed after touch');
+		self::assertNotSame(20, $stat['mtime'], 'Modification time has changed after touch');
+		self::assertNotSame(20, $stat['ctime'], 'inode change time has changed after touch');
 	}
 
 	public function testTouchUpdatesTimes(): void
