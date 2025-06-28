@@ -174,7 +174,8 @@ final class VfsStreamWrapper implements StreamWrapper
 		try {
 			//need to check all parents for permissions
 			$parentPath = $path;
-			while ($parentPath = dirname($parentPath)) {
+			while (true) {
+				$parentPath = dirname($parentPath);
 				try {
 					$parent = $container->getNodeAt($parentPath);
 					if (!$permissionChecker->isWritable($parent)) {
