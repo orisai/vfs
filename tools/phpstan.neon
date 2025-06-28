@@ -23,6 +23,11 @@ parameters:
 			- Orisai\Exceptions\Check\CheckedException
 
 	ignoreErrors:
+		# Internal classes in tests
+		-
+			message: '#(.+)internal(.+)Orisai(.+)#'
+			path: ../tests
+
 		# It *should*, we are testing internal behavior
 		-
 			message: '#^Call to static method (.+)\:\:assertFalse\(\) with true and ''(.+)'' will always evaluate to false\.$#'
