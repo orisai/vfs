@@ -1,6 +1,24 @@
 parameters:
 	ignoreErrors:
 		-
+			message: '#^Method Orisai\\VFS\\VfsStreamWrapper\:\:stream_stat\(\) never returns false so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: ../src/VfsStreamWrapper.php
+
+		-
+			message: '#^Method Orisai\\VFS\\VfsStreamWrapper\:\:stream_stat\(\) should return array\{0\: int, 1\: int, 2\: int, 3\: int, 4\: int, 5\: int, 6\: int, 7\: int, \.\.\.\}\|false but returns non\-empty\-array\<int\|string, int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: ../src/VfsStreamWrapper.php
+
+		-
+			message: '#^Method Orisai\\VFS\\VfsStreamWrapper\:\:url_stat\(\) should return array\{0\: int, 1\: int, 2\: int, 3\: int, 4\: int, 5\: int, 6\: int, 7\: int, \.\.\.\}\|false but returns non\-empty\-array\<int\|string, int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: ../src/VfsStreamWrapper.php
+
+		-
 			message: '#^Call to static method PHPUnit\\Framework\\Assert\:\:assertFalse\(\) with false and ''Directory not…'' will always evaluate to true\.$#'
 			identifier: staticMethod.alreadyNarrowedType
 			count: 2

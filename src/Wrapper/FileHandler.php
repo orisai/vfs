@@ -5,6 +5,7 @@ namespace Orisai\VFS\Wrapper;
 use Orisai\VFS\Lock;
 use Orisai\VFS\Structure\File;
 use Orisai\VFS\VfsStreamWrapper;
+use function assert;
 use function min;
 use function strlen;
 use function substr;
@@ -19,6 +20,7 @@ final class FileHandler
 	private const ReadMode = 1,
 		WriteMode = 2;
 
+	/** @var int<0, max> */
 	private int $position = 0;
 
 	private int $mode = 0;
@@ -37,7 +39,8 @@ final class FileHandler
 
 	/**
 	 * Writes to file and moves pointer.
-	 * Returns number of written bytes.
+	 *
+	 * @return int<0, max> number of written bytes
 	 */
 	public function write(string $data): int
 	{
@@ -64,6 +67,7 @@ final class FileHandler
 
 		$newPosition = $this->getPosition() + $bytes;
 		$newPosition = min($newPosition, strlen($content));
+		assert($newPosition >= 0);
 		$this->setPosition($newPosition);
 
 		$this->file->setAccessTime(time());
@@ -71,11 +75,17 @@ final class FileHandler
 		return $return;
 	}
 
+	/**
+	 * @return int<0, max>
+	 */
 	public function getPosition(): int
 	{
 		return $this->position;
 	}
 
+	/**
+	 * @param int<0, max> $position
+	 */
 	public function setPosition(int $position): void
 	{
 		$this->position = $position;
@@ -92,6 +102,9 @@ final class FileHandler
 		return $position;
 	}
 
+	/**
+	 * @param int<0, max> $offset
+	 */
 	public function offsetPosition(int $offset): void
 	{
 		$this->position += $offset;

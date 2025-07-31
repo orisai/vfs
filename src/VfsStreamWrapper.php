@@ -282,7 +282,7 @@ final class VfsStreamWrapper implements StreamWrapper
 		return true;
 	}
 
-	public function stream_cast(int $cast_as): bool
+	public function stream_cast(int $cast_as)
 	{
 		return false;
 	}
@@ -637,7 +637,7 @@ final class VfsStreamWrapper implements StreamWrapper
 			'uid' => 0,
 			'gid' => 0,
 			'rdev' => 0,
-			'size' => 123,
+			'size' => 0,
 			'atime' => 0,
 			'mtime' => 0,
 			'ctime' => 0,
@@ -648,7 +648,7 @@ final class VfsStreamWrapper implements StreamWrapper
 		return array_merge(array_values($assoc), $assoc);
 	}
 
-	public function stream_stat(): array
+	public function stream_stat()
 	{
 		assert($this->currentFile !== null);
 		$file = $this->currentFile->getFile();
