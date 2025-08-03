@@ -7,18 +7,6 @@ parameters:
 			path: ../src/VfsStreamWrapper.php
 
 		-
-			message: '#^Method Orisai\\VFS\\VfsStreamWrapper\:\:stream_stat\(\) should return array\{0\: int, 1\: int, 2\: int, 3\: int, 4\: int, 5\: int, 6\: int, 7\: int, \.\.\.\}\|false but returns non\-empty\-array\<int\|string, int\>\.$#'
-			identifier: return.type
-			count: 1
-			path: ../src/VfsStreamWrapper.php
-
-		-
-			message: '#^Method Orisai\\VFS\\VfsStreamWrapper\:\:url_stat\(\) should return array\{0\: int, 1\: int, 2\: int, 3\: int, 4\: int, 5\: int, 6\: int, 7\: int, \.\.\.\}\|false but returns non\-empty\-array\<int\|string, int\>\.$#'
-			identifier: return.type
-			count: 1
-			path: ../src/VfsStreamWrapper.php
-
-		-
 			message: '#^Call to static method PHPUnit\\Framework\\Assert\:\:assertFalse\(\) with false and ''Directory not…'' will always evaluate to true\.$#'
 			identifier: staticMethod.alreadyNarrowedType
 			count: 2
@@ -40,6 +28,18 @@ parameters:
 			message: '#^Cannot access offset ''atime'' on array\{0\: int, 1\: int, 2\: int, 3\: int, 4\: int, 5\: int, 6\: int, 7\: int, \.\.\.\}\|false\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 7
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: '#^Cannot access offset ''gid'' on array\{0\: int, 1\: int, 2\: int, 3\: int, 4\: int, 5\: int, 6\: int, 7\: int, \.\.\.\}\|false\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			message: '#^Cannot access offset ''uid'' on array\{0\: int, 1\: int, 2\: int, 3\: int, 4\: int, 5\: int, 6\: int, 7\: int, \.\.\.\}\|false\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
 			path: ../tests/Unit/VfsStreamWrapperTest.php
 
 		-
@@ -99,5 +99,5 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$user_id of function posix_getpwuid expects int, int\|false given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 4
 			path: ../tests/Unit/VfsStreamWrapperTest.php

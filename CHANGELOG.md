@@ -27,3 +27,8 @@ These are the changes made since fork of [michael-donat/php-vfs](https://github.
 ### Removed
 
 - All public interfaces except stream wrapper registration / unregistration
+
+### Fixed
+
+- `url_stat`, `stream_stat` (called in response to `stat()`, `lstat()`, `fstat()`)
+	- numeric indexes have same values as named instead of zeroes

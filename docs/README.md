@@ -79,6 +79,7 @@ List of knowingly supported functions (see [known limitations](#known-limitation
 - `fopen()`
 - `fread()`
 - `fseek()`
+- `fstat()`
 - `ftell()`
 - `ftruncate()`
 - `fwrite()`
@@ -88,6 +89,7 @@ List of knowingly supported functions (see [known limitations](#known-limitation
 - `is_readable()`
 - `is_writable()`
 - `lchown()`
+- `lstat()`
 - `mkdir()`
 - `opendir()`
 - `posix_getgrgid()`
@@ -109,7 +111,7 @@ Cannot be implemented, because stream wrapper is not supported by PHP:
 
 - `chdir()`, `chroot()`
 - `ini_set('error_log')`
-- `glob()` ([here](https://wiki.php.net/rfc/glob_streamwrapper_support) is an RFC to support it)
+- `glob()`
 - `realpath()`, `SplFileInfo::getRealPath()`
 - `link()`, `symlink()`, `readlink()`, `linkinfo()`
 - `tempnam()`
@@ -135,11 +137,9 @@ Unverified:
 - `fputcsv()`
 - `fputs()`
 - `fscanf()`
-- `fstat()`
 - `fsync()`
 - `is_dir()`
 - `lchgrp()`
-- `lstat()`
 - `parse_ini_file()`
 - `pathinfo()`
 - `pclose()`

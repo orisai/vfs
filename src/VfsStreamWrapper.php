@@ -10,6 +10,7 @@ use Orisai\VFS\Exception\PathNotFound;
 use Orisai\VFS\Structure\Directory;
 use Orisai\VFS\Structure\File;
 use Orisai\VFS\Structure\Link;
+use Orisai\VFS\Structure\Node;
 use Orisai\VFS\Structure\RootDirectory;
 use Orisai\VFS\Wrapper\DirectoryHandler;
 use Orisai\VFS\Wrapper\FileHandler;
@@ -53,6 +54,8 @@ use const STREAM_REPORT_ERRORS;
 
 /**
  * phpcs:disable Generic.NamingConventions.CamelCapsFunctionName.ScopeNotCamelCaps
+ *
+ * @phpstan-import-type T_Stat from StreamWrapper
  *
  * @internal
  */
@@ -624,28 +627,27 @@ final class VfsStreamWrapper implements StreamWrapper
 
 	/**
 	 * @return array<int|string, int>
-	 *
-	 * @see https://www.php.net/stat
+	 * @phpstan-return T_Stat
 	 */
-	private function getStatDefault(): array
+	private function createStats(Node $node): array
 	{
-		$assoc = [
+		$stats = [
 			'dev' => 0,
 			'ino' => 0,
-			'mode' => 0,
+			'mode' => $node->getMode(),
 			'nlink' => 0,
-			'uid' => 0,
-			'gid' => 0,
+			'uid' => $node->getUser(),
+			'gid' => $node->getGroup(),
 			'rdev' => 0,
-			'size' => 0,
-			'atime' => 0,
-			'mtime' => 0,
-			'ctime' => 0,
+			'size' => $node->getSize(),
+			'atime' => $node->getAccessTime(),
+			'mtime' => $node->getModificationTime(),
+			'ctime' => $node->getChangeTime(),
 			'blksize' => -1,
 			'blocks' => -1,
 		];
 
-		return array_merge(array_values($assoc), $assoc);
+		return array_merge(array_values($stats), $stats);
 	}
 
 	public function stream_stat()
@@ -653,15 +655,7 @@ final class VfsStreamWrapper implements StreamWrapper
 		assert($this->currentFile !== null);
 		$file = $this->currentFile->getFile();
 
-		return array_merge($this->getStatDefault(), [
-			'mode' => $file->getMode(),
-			'uid' => $file->getUser(),
-			'gid' => $file->getGroup(),
-			'atime' => $file->getAccessTime(),
-			'mtime' => $file->getModificationTime(),
-			'ctime' => $file->getChangeTime(),
-			'size' => $file->getSize(),
-		]);
+		return $this->createStats($file);
 	}
 
 	public function stream_tell(): int
@@ -739,20 +733,12 @@ final class VfsStreamWrapper implements StreamWrapper
 	public function url_stat(string $path, int $flags)
 	{
 		try {
-			$file = self::getContainer($path)->getNodeAt(self::stripScheme($path));
-
-			return array_merge($this->getStatDefault(), [
-				'mode' => $file->getMode(),
-				'uid' => $file->getUser(),
-				'gid' => $file->getGroup(),
-				'atime' => $file->getAccessTime(),
-				'mtime' => $file->getModificationTime(),
-				'ctime' => $file->getChangeTime(),
-				'size' => $file->getSize(),
-			]);
+			$node = self::getContainer($path)->getNodeAt(self::stripScheme($path));
 		} catch (PathNotFound $e) {
 			return false;
 		}
+
+		return $this->createStats($node);
 	}
 
 }

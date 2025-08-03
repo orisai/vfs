@@ -5,6 +5,7 @@ namespace Tests\Orisai\VFS\Unit;
 use DirectoryIterator;
 use FilesystemIterator;
 use finfo;
+use Orisai\StreamWrapperContracts\StreamWrapper;
 use Orisai\VFS\Container;
 use Orisai\VFS\Structure\Directory;
 use Orisai\VFS\VFS;
@@ -41,7 +42,9 @@ use function is_link;
 use function is_readable;
 use function is_writable;
 use function iterator_count;
+use function lchgrp;
 use function lchown;
+use function lstat;
 use function mkdir;
 use function opendir;
 use function posix_getgrgid;
@@ -74,6 +77,9 @@ use const STREAM_META_OWNER_NAME;
 use const STREAM_META_TOUCH;
 use const STREAM_REPORT_ERRORS;
 
+/**
+ * @phpstan-import-type T_Stat from StreamWrapper
+ */
 final class VfsStreamWrapperTest extends TestCase
 {
 
@@ -99,6 +105,29 @@ final class VfsStreamWrapperTest extends TestCase
 	{
 		parent::tearDown();
 		VFS::unregister($this->scheme);
+	}
+
+	/**
+	 * @param array|false $stats
+	 * @phpstan-param T_Stat|false $stats
+	 */
+	private function assertStatDuplicatesEqual($stats): void
+	{
+		self::assertIsArray($stats);
+
+		self::assertSame($stats['dev'], $stats[0]);
+		self::assertSame($stats['ino'], $stats[1]);
+		self::assertSame($stats['mode'], $stats[2]);
+		self::assertSame($stats['nlink'], $stats[3]);
+		self::assertSame($stats['uid'], $stats[4]);
+		self::assertSame($stats['gid'], $stats[5]);
+		self::assertSame($stats['rdev'], $stats[6]);
+		self::assertSame($stats['size'], $stats[7]);
+		self::assertSame($stats['atime'], $stats[8]);
+		self::assertSame($stats['mtime'], $stats[9]);
+		self::assertSame($stats['ctime'], $stats[10]);
+		self::assertSame($stats['blksize'], $stats[11]);
+		self::assertSame($stats['blocks'], $stats[12]);
 	}
 
 	public function testSchemeStripping(): void
@@ -148,7 +177,9 @@ final class VfsStreamWrapperTest extends TestCase
 		$this->container->getRootDirectory()->addDirectory($d = $factory->createDir('dir'));
 		$d->addLink($factory->createLink('link', $d));
 
-		self::assertTrue(is_link("$this->scheme://dir/link"));
+		$link = "$this->scheme://dir/link";
+		self::assertTrue(is_link($link));
+		$this->assertStatDuplicatesEqual(lstat($link));
 	}
 
 	public function testIsFile(): void
@@ -512,6 +543,7 @@ final class VfsStreamWrapperTest extends TestCase
 		$file = $this->container->createFile('/file', 'data');
 
 		$stat = stat("$this->scheme://file");
+		$this->assertStatDuplicatesEqual($stat);
 
 		self::assertNotSame(0, $stat['atime']);
 		self::assertNotSame(0, $stat['mtime']);
@@ -523,6 +555,7 @@ final class VfsStreamWrapperTest extends TestCase
 
 		file_get_contents("$this->scheme://file");
 		$stat = stat("$this->scheme://file");
+		$this->assertStatDuplicatesEqual($stat);
 
 		self::assertNotSame(10, $stat['atime'], 'Access time has changed after read');
 		self::assertSame(10, $stat['mtime'], 'Modification time has not changed after read');
@@ -534,6 +567,7 @@ final class VfsStreamWrapperTest extends TestCase
 
 		file_put_contents("$this->scheme://file", 'data');
 		$stat = stat("$this->scheme://file");
+		$this->assertStatDuplicatesEqual($stat);
 
 		self::assertSame(10, $stat['atime'], 'Access time has not changed after write');
 		self::assertNotSame(10, $stat['mtime'], 'Modification time has changed after write');
@@ -545,6 +579,7 @@ final class VfsStreamWrapperTest extends TestCase
 
 		chmod("$this->scheme://file", 0_777);
 		$stat = stat("$this->scheme://file");
+		$this->assertStatDuplicatesEqual($stat);
 
 		self::assertSame(10, $stat['atime'], 'Access time has not changed after inode change');
 		self::assertSame(10, $stat['mtime'], 'Modification time has not changed after inode change');
@@ -558,6 +593,7 @@ final class VfsStreamWrapperTest extends TestCase
 
 		fopen("$this->scheme://file", 'r');
 		$stat = stat("$this->scheme://file");
+		$this->assertStatDuplicatesEqual($stat);
 
 		self::assertSame(10, $stat['atime'], 'Access time has not changed after opening for reading');
 		self::assertSame(10, $stat['mtime'], 'Modification time has not changed after opening for reading');
@@ -569,6 +605,7 @@ final class VfsStreamWrapperTest extends TestCase
 
 		fopen("$this->scheme://file", 'w');
 		$stat = stat("$this->scheme://file");
+		$this->assertStatDuplicatesEqual($stat);
 
 		self::assertSame(20, $stat['atime'], 'Access time has not changed after opening for writing');
 		self::assertNotSame(20, $stat['mtime'], 'Modification time has changed after opnening for writing');
@@ -599,6 +636,7 @@ final class VfsStreamWrapperTest extends TestCase
 
 		touch("$this->scheme://file2");
 		$stat = stat("$this->scheme://file2");
+		$this->assertStatDuplicatesEqual($stat);
 
 		self::assertNotSame(20, $stat['atime'], 'Access time has changed after touch');
 		self::assertNotSame(20, $stat['mtime'], 'Modification time has changed after touch');
@@ -1348,17 +1386,25 @@ final class VfsStreamWrapperTest extends TestCase
 			new PermissionChecker(PermissionChecker::RootId, PermissionChecker::RootId),
 		);
 
-		lchown("$this->scheme://dir/link", 'root');
+		$linkPath = "$this->scheme://dir/link";
 
-		$userInfo = posix_getpwuid(fileowner("$this->scheme://dir/link"));
+		$oldUserInfo = posix_getpwuid(fileowner($linkPath));
+		self::assertNotFalse($oldUserInfo);
+		self::assertSame(lstat($linkPath)['uid'], $oldUserInfo['uid']);
+
+		lchown($linkPath, 'root');
+
+		$userInfo = posix_getpwuid(fileowner($linkPath));
 		self::assertNotFalse($userInfo);
 
 		self::assertSame('root', $userInfo['name']);
+		self::assertNotEquals($userInfo, $oldUserInfo);
+		self::assertSame(lstat($linkPath)['uid'], $userInfo['uid']);
 	}
 
 	public function testLchgrp(): void
 	{
-		if ($this->uid === 0) {
+		if ($this->gid === 0) {
 			self::markTestSkipped(
 				'No point testing if group is already root. ' .
 				'Php unit shouldn\'t be run as root group. (Unless you are on Windows - then we skip)',
@@ -1374,21 +1420,24 @@ final class VfsStreamWrapperTest extends TestCase
 			new PermissionChecker(PermissionChecker::RootId, PermissionChecker::RootId),
 		);
 
+		$linkPath = "$this->scheme://dir/link";
+
 		//lets workout available group
 		//this is needed to find string name of group root belongs to
-		$userInfo = posix_getpwuid(0);
+		$userInfo = posix_getpwuid(fileowner($linkPath));
 		self::assertNotFalse($userInfo);
 
 		$oldGroupInfo = posix_getgrgid($userInfo['gid']);
 		self::assertNotFalse($oldGroupInfo);
 
-		$group = $oldGroupInfo['name'];
+		lchgrp($linkPath, 'root');
 
-		chgrp("$this->scheme://dir/link", $group);
-		$groupInfo = posix_getgrgid(filegroup("$this->scheme://dir/link"));
+		$groupInfo = posix_getgrgid(filegroup($linkPath));
 		self::assertNotFalse($groupInfo);
 
-		self::assertSame($group, $groupInfo['name']);
+		self::assertSame('root', $groupInfo['name']);
+		self::assertNotEquals($groupInfo, $oldGroupInfo);
+		self::assertSame(lstat($linkPath)['gid'], $groupInfo['gid']);
 	}
 
 	public function testFileCopy(): void
