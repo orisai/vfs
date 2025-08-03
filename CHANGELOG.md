@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/orisai/vfs/compare/...v1.x)
+## [Unreleased](https://github.com/orisai/vfs/compare/1.0.0...v1.x)
+
+## [1.0.0](https://github.com/orisai/vfs/releases/tag/1.0.0) - 2025-08-04
 
 These are the changes made since fork of [michael-donat/php-vfs](https://github.com/michael-donat/php-vfs),
 [v1.4.2](https://github.com/michael-donat/php-vfs/releases/tag/v1.4.2).
