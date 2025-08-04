@@ -1430,12 +1430,12 @@ final class VfsStreamWrapperTest extends TestCase
 		$oldGroupInfo = posix_getgrgid($userInfo['gid']);
 		self::assertNotFalse($oldGroupInfo);
 
-		lchgrp($linkPath, 'root');
+		lchgrp($linkPath, PermissionChecker::RootId);
 
 		$groupInfo = posix_getgrgid(filegroup($linkPath));
 		self::assertNotFalse($groupInfo);
 
-		self::assertSame('root', $groupInfo['name']);
+		self::assertSame(PermissionChecker::RootId, $groupInfo['gid']);
 		self::assertNotEquals($groupInfo, $oldGroupInfo);
 		self::assertSame(lstat($linkPath)['gid'], $groupInfo['gid']);
 	}
