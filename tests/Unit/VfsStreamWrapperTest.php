@@ -411,7 +411,12 @@ final class VfsStreamWrapperTest extends TestCase
 		$class = VfsStreamWrapper::class;
 		$error = error_get_last();
 
-		if (PHP_VERSION_ID >= 8_00_00) {
+		if (PHP_VERSION_ID >= 8_06_00) {
+			self::assertSame(
+				"fopen(): Failed to open stream: \"$class::stream_open\" call failed",
+				$error['message'],
+			);
+		} elseif (PHP_VERSION_ID >= 8_00_00) {
 			self::assertSame(
 				"fopen($this->scheme://nonExistingFile): Failed to open stream: \"$class::stream_open\" call failed",
 				$error['message'],
@@ -455,7 +460,12 @@ final class VfsStreamWrapperTest extends TestCase
 		$class = VfsStreamWrapper::class;
 		$error = error_get_last();
 
-		if (PHP_VERSION_ID >= 8_00_00) {
+		if (PHP_VERSION_ID >= 8_06_00) {
+			self::assertSame(
+				"fopen(): Failed to open stream: \"$class::stream_open\" call failed",
+				$error['message'],
+			);
+		} elseif (PHP_VERSION_ID >= 8_00_00) {
 			self::assertSame(
 				"fopen($this->scheme://dir/file): Failed to open stream: \"$class::stream_open\" call failed",
 				$error['message'],

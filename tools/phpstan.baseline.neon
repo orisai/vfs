@@ -45,7 +45,7 @@ parameters:
 		-
 			rawMessage: 'Offset ''message'' might not exist on array{type: int, message: string, file: string, line: int}|null.'
 			identifier: offsetAccess.notFound
-			count: 33
+			count: 35
 			path: ../tests/Unit/VfsStreamWrapperTest.php
 
 		-
@@ -101,3 +101,15 @@ parameters:
 			identifier: argument.type
 			count: 4
 			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			rawMessage: 'assertEmpty() is not allowed. Use more strict assertion.'
+			identifier: phpunit.assertEmpty
+			count: 4
+			path: ../tests/Unit/VfsStreamWrapperTest.php
+
+		-
+			rawMessage: 'assertEmpty() is not allowed. Use more strict assertion.'
+			identifier: phpunit.assertEmpty
+			count: 1
+			path: ../tests/Unit/Wrapper/FileHandlerTest.php

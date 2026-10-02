@@ -21,7 +21,7 @@
 		}
 	],
 	"require": {
-		"php": "7.4 - 8.4",
+		"php": "7.4 - 8.6",
 		"orisai/exceptions": "^1.0.0",
 		"orisai/stream-wrapper-contracts": "^1.0.0",
 		"symfony/polyfill-php80": "^1.26"
@@ -51,6 +51,20 @@
 	"suggest": {
 		"ext-posix": "For permissions support - GID and UID"
 	},
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "https://github.com/mentax/exceptions"
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/mentax/stream-wrapper-contracts"
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/mentax/coding-standard-php"
+		}
+	],
 	"minimum-stability": "dev",
 	"prefer-stable": true,
 	"config": {

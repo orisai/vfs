@@ -63,7 +63,7 @@ final class File extends Node
 		if ($this->exclusiveLock === $wrapper) {
 			$this->exclusiveLock = null;
 		} else {
-			$this->sharedLock->detach($wrapper);
+			$this->sharedLock->offsetUnset($wrapper);
 		}
 
 		if (($operation & LOCK_NB) !== 0) {
@@ -82,7 +82,7 @@ final class File extends Node
 		}
 
 		if (!$exclusive) {
-			$this->sharedLock->attach($wrapper);
+			$this->sharedLock->offsetSet($wrapper);
 
 			return true;
 		}
